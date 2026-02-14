@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -23,12 +23,13 @@ import {
   Code,
   Boxes,
   Zap,
-  ChevronDown,
-  ChevronUp,
+  Upload,
+  X,
 } from "lucide-react";
 import { createInterview } from "@/app/actions/interview";
+import { extractTextFromPdf } from "@/app/actions/pdf";
 
-type Step = "choose" | "form";
+type Step = "choose" | "form" | "resume";
 type Mode = "auto" | "content";
 type InterviewType = "general" | "behavioral" | "technical" | "system-design";
 type Difficulty = "junior" | "mid" | "senior";
@@ -61,8 +62,14 @@ export default function AddNewInterview() {
   const [difficulty, setDifficulty] = useState<Difficulty>("mid");
   const [questionCount, setQuestionCount] = useState<QuestionCount>("5");
   const [resumeText, setResumeText] = useState("");
-  const [showResume, setShowResume] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // PDF upload state
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const router = useRouter();
 
@@ -77,8 +84,11 @@ export default function AddNewInterview() {
     setDifficulty("mid");
     setQuestionCount("5");
     setResumeText("");
-    setShowResume(false);
     setLoading(false);
+    setPdfFile(null);
+    setExtracting(false);
+    setExtractError("");
+    setDragOver(false);
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -91,8 +101,58 @@ export default function AddNewInterview() {
     setStep("form");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePdfUpload = useCallback(
+    async (file: File) => {
+      setPdfFile(file);
+      setExtractError("");
+      setExtracting(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const { text } = await extractTextFromPdf(formData);
+        if (mode === "auto") {
+          setResumeText(text);
+        } else {
+          setReferenceContent(text);
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to extract text.";
+        setExtractError(message);
+        setPdfFile(null);
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [mode]
+  );
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handlePdfUpload(file);
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handlePdfUpload(file);
+  };
+
+  const clearPdf = () => {
+    setPdfFile(null);
+    setExtractError("");
+    if (mode === "auto") {
+      setResumeText("");
+    } else {
+      setReferenceContent("");
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
 
     setLoading(true);
     try {
@@ -117,6 +177,78 @@ export default function AddNewInterview() {
     }
   };
 
+  const pdfUploadZone = (
+    <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`flex flex-col items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer ${
+          dragOver
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/40 bg-accent/30 hover:bg-accent/50"
+        }`}
+      >
+        {extracting ? (
+          <>
+            <Loader className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-sm text-muted-foreground">Extracting text...</p>
+          </>
+        ) : pdfFile ? (
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium">{pdfFile.name}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                clearPdf();
+              }}
+              className="p-0.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <Upload className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium">
+              Drop your PDF here or click to browse
+            </p>
+            <p className="text-xs text-muted-foreground">PDF only, up to 5MB</p>
+          </>
+        )}
+      </div>
+      {extractError && (
+        <p className="text-sm text-destructive">{extractError}</p>
+      )}
+    </div>
+  );
+
+  const orDivider = (
+    <div className="flex items-center gap-3 my-1">
+      <div className="flex-1 border-t border-border" />
+      <span className="text-xs text-muted-foreground">or</span>
+      <div className="flex-1 border-t border-border" />
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -130,7 +262,7 @@ export default function AddNewInterview() {
         </div>
       </DialogTrigger>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-        {step === "choose" ? (
+        {step === "choose" && (
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
@@ -171,7 +303,9 @@ export default function AddNewInterview() {
               </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {step === "form" && (
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
@@ -185,7 +319,17 @@ export default function AddNewInterview() {
                   : "Provide the job position and paste any reference material (resume, job posting, notes, etc.)."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (mode === "auto") {
+                  setStep("resume");
+                } else {
+                  handleSubmit();
+                }
+              }}
+              className="space-y-5 mt-4"
+            >
               <div>
                 <label
                   htmlFor="jobPosition"
@@ -237,17 +381,16 @@ export default function AddNewInterview() {
                   </div>
                 </>
               ) : (
-                <div>
-                  <label
-                    htmlFor="referenceContent"
-                    className="block text-sm font-medium mb-1.5"
-                  >
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium mb-1.5">
                     Reference Material
                   </label>
+                  {pdfUploadZone}
+                  {orDivider}
                   <Textarea
                     id="referenceContent"
                     placeholder="Paste your resume, job posting, study notes, or any content you want questions generated from..."
-                    required
+                    required={!referenceContent}
                     rows={8}
                     value={referenceContent}
                     onChange={(e) => setReferenceContent(e.target.value)}
@@ -325,37 +468,6 @@ export default function AddNewInterview() {
                 </div>
               </div>
 
-              {/* Collapsible Resume Section (auto mode only) */}
-              {mode === "auto" && (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowResume(!showResume)}
-                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
-                  >
-                    <span>Paste your resume (optional)</span>
-                    {showResume ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </button>
-                  {showResume && (
-                    <div className="px-4 pb-4">
-                      <Textarea
-                        placeholder="Paste your resume text here for personalized questions..."
-                        rows={6}
-                        value={resumeText}
-                        onChange={(e) => setResumeText(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1.5">
-                        AI will probe your specific experience and skills
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="flex gap-3 justify-between pt-2">
                 <Button
                   type="button"
@@ -372,7 +484,71 @@ export default function AddNewInterview() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  {mode === "auto" ? (
+                    <Button type="submit">Next &rarr;</Button>
+                  ) : (
+                    <Button type="submit" disabled={loading || !referenceContent}>
+                      {loading ? (
+                        <>
+                          <Loader className="animate-spin mr-2" /> Generating...
+                        </>
+                      ) : (
+                        "Start Interview"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </>
+        )}
+
+        {step === "resume" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-display">
+                Add your resume
+              </DialogTitle>
+              <DialogDescription>
+                Upload a PDF or paste your resume text so AI can personalize
+                questions to your experience. This step is optional.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5 mt-4">
+              {pdfUploadZone}
+              {orDivider}
+              <Textarea
+                placeholder="Paste your resume text here for personalized questions..."
+                rows={6}
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                AI will probe your specific experience and skills
+              </p>
+
+              <div className="flex gap-3 justify-between pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setStep("form")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleSubmit()}
+                    disabled={loading}
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleSubmit()}
+                    disabled={loading || extracting}
+                  >
                     {loading ? (
                       <>
                         <Loader className="animate-spin mr-2" /> Generating...
@@ -383,7 +559,7 @@ export default function AddNewInterview() {
                   </Button>
                 </div>
               </div>
-            </form>
+            </div>
           </>
         )}
       </DialogContent>
