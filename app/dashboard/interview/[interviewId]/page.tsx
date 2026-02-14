@@ -29,7 +29,7 @@ export default function InterviewPage() {
 
   return (
     <div className="py-10">
-      <h2 className="font-bold text-2xl">Let's Get Started</h2>
+      <h2 className="font-bold text-2xl">Let&apos;s Get Started</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-7">
         <div className="flex flex-col gap-5">
@@ -51,7 +51,7 @@ export default function InterviewPage() {
             </h3>
             <p className="text-sm text-yellow-600 mt-2">
               Enable your webcam and microphone to start the AI-generated mock interview.
-              You'll be asked 5 questions and receive feedback on each answer.
+              You&apos;ll be asked 5 questions and receive feedback on each answer.
               Note: We never record your video. You can disable the webcam at any time.
             </p>
           </div>
