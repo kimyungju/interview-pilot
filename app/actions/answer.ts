@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { UserAnswer } from "@/lib/schema";
 import { generateFromPrompt, cleanJsonResponse } from "@/lib/gemini";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
 
 export async function submitAnswer(
@@ -21,7 +21,12 @@ export async function submitAnswer(
   const feedbackPrompt = `Question: "${question}". User Answer: "${userAns}". Based on the question and user answer, please give a rating out of 5 and feedback in 3-5 lines in JSON format with "rating" and "feedback" fields.`;
 
   const responseText = await generateFromPrompt(feedbackPrompt);
-  const parsed = JSON.parse(cleanJsonResponse(responseText));
+  let parsed: { rating: number; feedback: string };
+  try {
+    parsed = JSON.parse(cleanJsonResponse(responseText));
+  } catch {
+    throw new Error("AI returned invalid response. Please try again.");
+  }
 
   await db.insert(UserAnswer).values({
     mockIdRef,
@@ -38,8 +43,16 @@ export async function submitAnswer(
 }
 
 export async function getAnswers(mockIdRef: string) {
+  const user = await currentUser();
+  if (!user?.emailAddresses?.[0]?.emailAddress) {
+    throw new Error("Unauthorized");
+  }
+  const userEmail = user.emailAddresses[0].emailAddress;
+
   return db
     .select()
     .from(UserAnswer)
-    .where(eq(UserAnswer.mockIdRef, mockIdRef));
+    .where(
+      and(eq(UserAnswer.mockIdRef, mockIdRef), eq(UserAnswer.userEmail, userEmail))
+    );
 }

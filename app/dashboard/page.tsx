@@ -21,11 +21,17 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="py-10">
-      <h2 className="font-bold text-2xl">Dashboard</h2>
-      <p className="text-gray-500">Create and start your AI Mock Interview</p>
+    <div className="py-12">
+      <div className="mb-8">
+        <h2 className="font-bold text-3xl font-display tracking-tight">
+          Dashboard
+        </h2>
+        <p className="text-muted-foreground mt-1.5">
+          Create and practice AI-powered mock interviews
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <AddNewInterview />
         {interviews.map((interview) => (
           <InterviewCard

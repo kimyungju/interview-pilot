@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Star } from "lucide-react";
+import { ChevronDown, Star, ArrowLeft, Trophy } from "lucide-react";
 
 interface AnswerData {
   id: number;
@@ -18,6 +18,18 @@ interface AnswerData {
   userAns: string | null;
   feedback: string | null;
   rating: string | null;
+}
+
+function getRatingColor(rating: number): string {
+  if (rating >= 4) return "text-emerald-600";
+  if (rating >= 3) return "text-amber-600";
+  return "text-red-500";
+}
+
+function getRatingBg(rating: number): string {
+  if (rating >= 4) return "bg-emerald-50 border-emerald-200";
+  if (rating >= 3) return "bg-amber-50 border-amber-200";
+  return "bg-red-50 border-red-200";
 }
 
 export default function FeedbackPage() {
@@ -38,54 +50,95 @@ export default function FeedbackPage() {
       ).toFixed(1)
     : "0";
 
-  if (answers.length === 0) return <p className="p-10">Loading feedback...</p>;
+  if (answers.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  const ratingNum = parseFloat(overallRating);
 
   return (
-    <div className="py-10">
-      <h2 className="text-3xl font-bold text-green-600">Congratulations!</h2>
-      <p className="text-lg text-gray-600 mt-2">Here is your interview feedback</p>
-
-      <div className="my-5 p-5 rounded-lg border bg-secondary">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <Star className="text-yellow-500" />
-          Overall Rating: <span className="text-primary">{overallRating}/5</span>
-        </h3>
+    <div className="py-12 max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
+          <Trophy className="h-8 w-8 text-primary" />
+        </div>
+        <h2 className="text-3xl font-bold font-display tracking-tight">
+          Interview Complete
+        </h2>
+        <p className="text-muted-foreground mt-2">
+          Here&apos;s how you did — review each answer below
+        </p>
       </div>
 
-      <div className="space-y-4">
-        {answers.map((answer, index) => (
-          <Collapsible key={answer.id}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 rounded-lg bg-secondary hover:bg-secondary/80 text-left">
-              <span className="font-medium">
-                Question #{index + 1}: {answer.question}
-              </span>
-              <ChevronDown className="h-5 w-5" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="p-4 border rounded-b-lg space-y-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-500">Rating</p>
-                <p className="text-primary font-bold">{answer.rating}/5</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-red-500">Your Answer</p>
-                <p className="text-sm bg-red-50 p-3 rounded">{answer.userAns || "No answer recorded"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-green-500">Correct Answer</p>
-                <p className="text-sm bg-green-50 p-3 rounded">{answer.correctAns || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-blue-500">Feedback</p>
-                <p className="text-sm bg-blue-50 p-3 rounded">{answer.feedback || "No feedback"}</p>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        ))}
+      {/* Overall Rating */}
+      <div className="flex items-center justify-center gap-4 p-6 rounded-2xl border bg-card mb-8">
+        <div className="flex items-center gap-2">
+          <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
+          <span className="text-sm font-medium text-muted-foreground">Overall Rating</span>
+        </div>
+        <div className={`text-4xl font-bold font-display ${getRatingColor(ratingNum)}`}>
+          {overallRating}
+          <span className="text-lg text-muted-foreground font-normal">/5</span>
+        </div>
       </div>
 
-      <Button className="mt-8" onClick={() => router.push("/dashboard")}>
-        Go to Dashboard
-      </Button>
+      {/* Questions */}
+      <div className="space-y-3">
+        {answers.map((answer, index) => {
+          const rating = parseFloat(answer.rating || "0");
+          return (
+            <Collapsible key={answer.id}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-4 rounded-xl bg-card border hover:bg-accent/50 text-left transition-colors duration-200 group">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary text-sm font-bold shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="font-medium text-sm line-clamp-1">{answer.question}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-bold ${getRatingColor(rating)}`}>
+                    {answer.rating}/5
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform duration-200" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="px-4 pb-4 pt-2 space-y-3">
+                <div className={`p-4 rounded-lg border ${getRatingBg(rating)}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">Rating</p>
+                  <p className={`text-lg font-bold ${getRatingColor(rating)}`}>{answer.rating}/5</p>
+                </div>
+                <div className="p-4 rounded-lg bg-red-50/50 border border-red-100">
+                  <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">Your Answer</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{answer.userAns || "No answer recorded"}</p>
+                </div>
+                <div className="p-4 rounded-lg bg-emerald-50/50 border border-emerald-100">
+                  <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1.5">Ideal Answer</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{answer.correctAns || "N/A"}</p>
+                </div>
+                <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-100">
+                  <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-1.5">Feedback</p>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{answer.feedback || "No feedback"}</p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
+      </div>
+
+      <div className="mt-10 flex justify-center">
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          onClick={() => router.push("/dashboard")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+        </Button>
+      </div>
     </div>
   );
 }

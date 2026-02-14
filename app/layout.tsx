@@ -1,11 +1,15 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Libre_Baskerville, Karla, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-export const dynamic = "force-dynamic";
-
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const libreBaskerville = Libre_Baskerville({
+  variable: "--font-libre-baskerville",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+const karla = Karla({ variable: "--font-karla", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -17,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body className={`${libreBaskerville.variable} ${karla.variable} ${geistMono.variable} antialiased`}>
           {children}
         </body>
       </html>

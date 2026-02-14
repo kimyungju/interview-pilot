@@ -25,10 +25,14 @@ export async function createInterview(
   const inputPrompt = `Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}. Based on this information, give me 5 interview questions with answers in JSON format. Each object should have "question" and "answer" fields.`;
 
   const responseText = await generateFromPrompt(inputPrompt);
-  const jsonMockResp = cleanJsonResponse(responseText);
-
-  // Validate it's parseable JSON
-  JSON.parse(jsonMockResp);
+  let jsonMockResp: string;
+  try {
+    jsonMockResp = cleanJsonResponse(responseText);
+    // Validate it's parseable JSON
+    JSON.parse(jsonMockResp);
+  } catch {
+    throw new Error("AI returned invalid response. Please try again.");
+  }
 
   const mockId = uuidv4();
 
@@ -55,9 +59,13 @@ export async function getInterviewList() {
 }
 
 export async function getInterview(mockId: string) {
+  const userEmail = await getAuthEmail();
   const result = await db
     .select()
     .from(MockInterview)
     .where(eq(MockInterview.mockId, mockId));
+  if (result[0] && result[0].createdBy !== userEmail) {
+    return null;
+  }
   return result[0] || null;
 }

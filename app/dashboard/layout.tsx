@@ -1,10 +1,12 @@
 import Header from "./_components/Header";
 
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       <Header />
-      <div className="mx-5 md:mx-20 lg:mx-36">{children}</div>
+      <div className="mx-auto max-w-6xl px-6">{children}</div>
     </div>
   );
 }
