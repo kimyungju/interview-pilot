@@ -16,8 +16,12 @@ interface Interview {
 export default function DashboardPage() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
 
-  useEffect(() => {
+  function loadInterviews() {
     getInterviewList().then(setInterviews);
+  }
+
+  useEffect(() => {
+    loadInterviews();
   }, []);
 
   return (
@@ -40,6 +44,7 @@ export default function DashboardPage() {
             jobPosition={interview.jobPosition}
             jobExperience={interview.jobExperience}
             createdAt={interview.createdAt}
+            onDeleted={loadInterviews}
           />
         ))}
       </div>

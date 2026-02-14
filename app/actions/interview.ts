@@ -1,10 +1,10 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { MockInterview } from "@/lib/schema";
+import { MockInterview, UserAnswer } from "@/lib/schema";
 import { generateFromPrompt, cleanJsonResponse } from "@/lib/gemini";
 import { v4 as uuidv4 } from "uuid";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
 
 async function getAuthEmail(): Promise<string> {
@@ -71,4 +71,16 @@ export async function getInterview(mockId: string) {
     return null;
   }
   return result[0] || null;
+}
+
+export async function deleteInterview(mockId: string) {
+  const userEmail = await getAuthEmail();
+  await db
+    .delete(UserAnswer)
+    .where(eq(UserAnswer.mockIdRef, mockId));
+  await db
+    .delete(MockInterview)
+    .where(
+      and(eq(MockInterview.mockId, mockId), eq(MockInterview.createdBy, userEmail))
+    );
 }
