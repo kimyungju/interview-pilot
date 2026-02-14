@@ -22,7 +22,7 @@ export async function createInterview(
 ) {
   const userEmail = await getAuthEmail();
 
-  const inputPrompt = `Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}. Based on this information, give me 5 interview questions with answers in JSON format. Each object should have "question" and "answer" fields.`;
+  const inputPrompt = `Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}. Based on this information, give me 5 interview questions with answers. Respond with ONLY a JSON array, no other text. Format: [{"question": "...", "answer": "..."}]`;
 
   const responseText = await generateFromPrompt(inputPrompt);
   let jsonMockResp: string;
