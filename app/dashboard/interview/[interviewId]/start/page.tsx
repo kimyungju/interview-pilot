@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getInterview } from "@/app/actions/interview";
 import { submitAnswer } from "@/app/actions/answer";
@@ -23,15 +23,25 @@ export default function StartInterviewPage() {
   const [userAnswer, setUserAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(
+    null
+  );
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isRecordingRef = useRef(false);
+  const countdownTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const webcamRef = useRef<Webcam>(null);
 
   useEffect(() => {
     if (params.interviewId) {
       getInterview(params.interviewId).then((data) => {
         if (data?.jsonMockResp) {
           const parsed = JSON.parse(data.jsonMockResp);
-          const arr = Array.isArray(parsed) ? parsed : Object.values(parsed).find(Array.isArray) || [];
+          const arr = Array.isArray(parsed)
+            ? parsed
+            : Object.values(parsed).find(Array.isArray) || [];
           setQuestions(arr);
         }
       });
@@ -56,38 +66,103 @@ export default function StartInterviewPage() {
         };
         rec.onerror = () => {
           setIsRecording(false);
+          isRecordingRef.current = false;
         };
         setSpeechSupported(true);
         setRecognition(rec);
+        recognitionRef.current = rec;
       }
     }
   }, []);
 
+  // Auto-read question, then start countdown after speech ends
+  useEffect(() => {
+    if (questions.length === 0 || !speechSupported) return;
+
+    countdownTimersRef.current.forEach(clearTimeout);
+    countdownTimersRef.current = [];
+    setCountdown(null);
+    window.speechSynthesis?.cancel();
+
+    const utterance = handleTextToSpeech(questions[activeIndex].question);
+
+    const startCountdown = () => {
+      setCountdown(3);
+      const t1 = setTimeout(() => setCountdown(2), 1000);
+      const t2 = setTimeout(() => setCountdown(1), 2000);
+      const t3 = setTimeout(() => {
+        setCountdown(null);
+        if (!isRecordingRef.current && recognitionRef.current) {
+          setUserAnswer("");
+          recognitionRef.current.start();
+          setIsRecording(true);
+          isRecordingRef.current = true;
+        }
+      }, 3000);
+      countdownTimersRef.current = [t1, t2, t3];
+    };
+
+    if (utterance) {
+      utterance.onend = startCountdown;
+    } else {
+      startCountdown();
+    }
+
+    return () => {
+      countdownTimersRef.current.forEach(clearTimeout);
+      countdownTimersRef.current = [];
+      window.speechSynthesis?.cancel();
+    };
+  }, [activeIndex, questions.length, speechSupported]);
+
   const toggleRecording = () => {
     if (!recognition) return;
+
+    window.speechSynthesis?.cancel();
+    countdownTimersRef.current.forEach(clearTimeout);
+    countdownTimersRef.current = [];
+    setCountdown(null);
+
     if (isRecording) {
       recognition.stop();
       setIsRecording(false);
+      isRecordingRef.current = false;
     } else {
       setUserAnswer("");
       recognition.start();
       setIsRecording(true);
+      isRecordingRef.current = true;
     }
   };
 
   const handleTextToSpeech = (text: string) => {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(
+        (v) => v.lang.startsWith("en") && v.localService
+      );
+      if (englishVoice) utterance.voice = englishVoice;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
+      return utterance;
     }
+    return null;
   };
 
   const handleSubmitAnswer = async () => {
     if (!questions[activeIndex]) return;
+
+    window.speechSynthesis?.cancel();
+    countdownTimersRef.current.forEach(clearTimeout);
+    countdownTimersRef.current = [];
+    setCountdown(null);
+
     if (isRecording && recognition) {
       recognition.stop();
       setIsRecording(false);
+      isRecordingRef.current = false;
     }
 
     setLoading(true);
@@ -135,7 +210,9 @@ export default function StartInterviewPage() {
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
           <div
             className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-            style={{ width: `${((activeIndex + 1) / questions.length) * 100}%` }}
+            style={{
+              width: `${((activeIndex + 1) / questions.length) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -152,8 +229,8 @@ export default function StartInterviewPage() {
                   activeIndex === index
                     ? "bg-primary text-primary-foreground shadow-md"
                     : index < activeIndex
-                    ? "bg-primary/10 text-primary"
-                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                 }`}
                 onClick={() => setActiveIndex(index)}
               >
@@ -171,7 +248,9 @@ export default function StartInterviewPage() {
               variant="ghost"
               size="sm"
               className="mt-3 text-muted-foreground hover:text-primary"
-              onClick={() => handleTextToSpeech(questions[activeIndex].question)}
+              onClick={() =>
+                handleTextToSpeech(questions[activeIndex].question)
+              }
             >
               <Volume2 className="mr-1.5 h-4 w-4" /> Read Aloud
             </Button>
@@ -182,7 +261,13 @@ export default function StartInterviewPage() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Your Answer
             </p>
-            <p className={userAnswer ? "text-foreground leading-relaxed" : "text-muted-foreground/60 italic"}>
+            <p
+              className={
+                userAnswer
+                  ? "text-foreground leading-relaxed"
+                  : "text-muted-foreground/60 italic"
+              }
+            >
               {userAnswer || "Start recording to see your answer here..."}
             </p>
           </div>
@@ -194,6 +279,7 @@ export default function StartInterviewPage() {
                 <Button
                   variant={isRecording ? "destructive" : "default"}
                   onClick={toggleRecording}
+                  disabled={countdown !== null}
                 >
                   {isRecording ? (
                     <>
@@ -204,13 +290,21 @@ export default function StartInterviewPage() {
                       Stop Recording
                     </>
                   ) : (
-                    <><Mic className="mr-2 h-4 w-4" /> Record Answer</>
+                    <>
+                      <Mic className="mr-2 h-4 w-4" /> Record Answer
+                    </>
                   )}
                 </Button>
 
-                <Button onClick={handleSubmitAnswer} disabled={loading || !userAnswer}>
+                <Button
+                  onClick={handleSubmitAnswer}
+                  disabled={loading || !userAnswer}
+                >
                   {loading ? (
-                    <><Loader className="animate-spin mr-2 h-4 w-4" /> Submitting...</>
+                    <>
+                      <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
+                      Submitting...
+                    </>
                   ) : activeIndex === questions.length - 1 ? (
                     "Submit & Finish"
                   ) : (
@@ -226,9 +320,15 @@ export default function StartInterviewPage() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   rows={4}
                 />
-                <Button onClick={handleSubmitAnswer} disabled={loading || !userAnswer}>
+                <Button
+                  onClick={handleSubmitAnswer}
+                  disabled={loading || !userAnswer}
+                >
                   {loading ? (
-                    <><Loader className="animate-spin mr-2 h-4 w-4" /> Submitting...</>
+                    <>
+                      <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
+                      Submitting...
+                    </>
                   ) : activeIndex === questions.length - 1 ? (
                     "Submit & Finish"
                   ) : (
@@ -241,11 +341,20 @@ export default function StartInterviewPage() {
         </div>
 
         {/* Webcam Panel */}
-        <div className="flex justify-center">
+        <div className="flex justify-center relative">
           <Webcam
+            ref={webcamRef}
             mirrored
             className="rounded-xl w-full h-72 object-cover border"
           />
+          {countdown !== null && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-xl">
+              <p className="text-6xl font-bold text-white">{countdown}</p>
+              <p className="text-white/80 text-sm mt-2">
+                Starting in...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
