@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader, Mic, Volume2 } from "lucide-react";
 import Webcam from "react-webcam";
+import { getStoredVoiceGender, selectVoice, loadVoices } from "@/lib/voiceUtils";
 
 interface QuestionAnswer {
   question: string;
@@ -28,6 +29,7 @@ export default function StartInterviewPage() {
   );
   const [speechSupported, setSpeechSupported] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isRecordingRef = useRef(false);
@@ -73,6 +75,10 @@ export default function StartInterviewPage() {
         recognitionRef.current = rec;
       }
     }
+  }, []);
+
+  useEffect(() => {
+    loadVoices().then(setVoices);
   }, []);
 
   // Auto-read question, then start countdown after speech ends
@@ -139,11 +145,11 @@ export default function StartInterviewPage() {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-US";
-      const voices = window.speechSynthesis.getVoices();
-      const englishVoice = voices.find(
-        (v) => v.lang.startsWith("en") && v.localService
-      );
-      if (englishVoice) utterance.voice = englishVoice;
+      const preferredGender = getStoredVoiceGender();
+      const availableVoices =
+        voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+      const selectedVoice = selectVoice(availableVoices, preferredGender);
+      if (selectedVoice) utterance.voice = selectedVoice;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
       return utterance;

@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getInterview } from "@/app/actions/interview";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, WebcamIcon, ArrowRight, CheckCircle } from "lucide-react";
+import { Lightbulb, WebcamIcon, ArrowRight, CheckCircle, Volume2, Play } from "lucide-react";
 import Webcam from "react-webcam";
+import {
+  type VoiceGender,
+  getStoredVoiceGender,
+  setStoredVoiceGender,
+  selectVoice,
+  loadVoices,
+} from "@/lib/voiceUtils";
 
 interface InterviewData {
   jobPosition: string;
@@ -28,12 +35,43 @@ export default function InterviewPage() {
   const router = useRouter();
   const [interview, setInterview] = useState<InterviewData | null>(null);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
+  const [voiceGender, setVoiceGender] = useState<VoiceGender>("female");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
 
   useEffect(() => {
     if (params.interviewId) {
       getInterview(params.interviewId).then(setInterview);
     }
   }, [params.interviewId]);
+
+  useEffect(() => {
+    setVoiceGender(getStoredVoiceGender());
+    loadVoices().then(setVoices);
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  const handleGenderChange = (gender: VoiceGender) => {
+    setVoiceGender(gender);
+    setStoredVoiceGender(gender);
+  };
+
+  const handlePreview = () => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(
+      "Hello! I'll be your interviewer today. Let's get started."
+    );
+    utterance.lang = "en-US";
+    const voice = selectVoice(voices, voiceGender);
+    if (voice) utterance.voice = voice;
+    utterance.onstart = () => setPreviewPlaying(true);
+    utterance.onend = () => setPreviewPlaying(false);
+    utterance.onerror = () => setPreviewPlaying(false);
+    window.speechSynthesis.speak(utterance);
+  };
 
   if (!interview) {
     return (
@@ -108,6 +146,41 @@ export default function InterviewPage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="p-5 rounded-xl border bg-card">
+            <h3 className="flex items-center gap-2 font-medium text-sm">
+              <Volume2 className="h-4 w-4" /> Interviewer Voice
+            </h3>
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex rounded-lg border-2 border-border overflow-hidden">
+                {(["female", "male"] as const).map((g) => (
+                  <button
+                    key={g}
+                    className={`px-4 py-1.5 text-sm font-medium transition-colors capitalize ${
+                      voiceGender === g
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background hover:bg-accent"
+                    }`}
+                    onClick={() => handleGenderChange(g)}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreview}
+                disabled={voices.length === 0 || previewPlaying}
+              >
+                <Play className="mr-1.5 h-3.5 w-3.5" />
+                {previewPlaying ? "Playing..." : "Preview"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2.5">
+              Natural-sounding voice reads questions aloud
+            </p>
           </div>
         </div>
 
