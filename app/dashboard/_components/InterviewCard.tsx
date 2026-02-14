@@ -11,14 +11,31 @@ interface InterviewCardProps {
   jobPosition: string;
   jobExperience: string;
   createdAt: string | null;
+  interviewType?: string | null;
+  difficulty?: string | null;
   onDeleted?: () => void;
 }
+
+const typeLabels: Record<string, string> = {
+  general: "General",
+  behavioral: "Behavioral",
+  technical: "Technical",
+  "system-design": "System Design",
+};
+
+const difficultyColors: Record<string, string> = {
+  junior: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  mid: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  senior: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
 
 export default function InterviewCard({
   mockId,
   jobPosition,
   jobExperience,
   createdAt,
+  interviewType,
+  difficulty,
   onDeleted,
 }: InterviewCardProps) {
   const [deleting, setDeleting] = useState(false);
@@ -34,6 +51,9 @@ export default function InterviewCard({
     }
   }
 
+  const type = interviewType || "general";
+  const diff = difficulty || "mid";
+
   return (
     <div className="group relative p-5 rounded-xl border border-border bg-card hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300">
       <button
@@ -46,7 +66,15 @@ export default function InterviewCard({
       <h2 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors duration-300 pr-8">
         {jobPosition}
       </h2>
-      <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary">
+          {typeLabels[type] || "General"}
+        </span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium capitalize ${difficultyColors[diff] || difficultyColors.mid}`}>
+          {diff}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 mt-2.5 text-sm text-muted-foreground">
         <Briefcase className="h-3.5 w-3.5" />
         <span>{jobExperience} years experience</span>
       </div>

@@ -11,7 +11,17 @@ interface InterviewData {
   jobPosition: string;
   jobDesc: string;
   jobExperience: string;
+  interviewType?: string | null;
+  difficulty?: string | null;
+  questionCount?: string | null;
 }
+
+const typeLabels: Record<string, string> = {
+  general: "General",
+  behavioral: "Behavioral",
+  technical: "Technical",
+  "system-design": "System Design",
+};
 
 export default function InterviewPage() {
   const params = useParams<{ interviewId: string }>();
@@ -33,6 +43,10 @@ export default function InterviewPage() {
     );
   }
 
+  const questionCount = interview.questionCount || "5";
+  const interviewType = interview.interviewType || "general";
+  const difficulty = interview.difficulty || "mid";
+
   return (
     <div className="py-12">
       <div className="mb-8">
@@ -52,30 +66,44 @@ export default function InterviewPage() {
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Position</span>
                 <p className="text-lg font-semibold mt-0.5">{interview.jobPosition}</p>
               </div>
-              <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</span>
-                <p className="text-sm text-muted-foreground mt-0.5">{interview.jobDesc}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Experience</span>
-                <p className="text-sm font-medium mt-0.5">{interview.jobExperience} years</p>
+              {interview.jobDesc && (
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</span>
+                  <p className="text-sm text-muted-foreground mt-0.5">{interview.jobDesc}</p>
+                </div>
+              )}
+              {interview.jobExperience && (
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Experience</span>
+                  <p className="text-sm font-medium mt-0.5">{interview.jobExperience} years</p>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                  {typeLabels[interviewType] || "General"}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground capitalize">
+                  {difficulty}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
+                  {questionCount} questions
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl border border-amber-200/60 bg-amber-50/50">
-            <h3 className="flex items-center gap-2 text-amber-700 font-medium">
+          <div className="p-5 rounded-xl border border-amber-200/60 bg-amber-50/50 dark:border-amber-700/40 dark:bg-amber-950/20">
+            <h3 className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
               <Lightbulb className="h-5 w-5" /> Before you begin
             </h3>
             <ul className="mt-3 space-y-2">
               {[
                 "Enable your webcam and microphone",
-                "You'll be asked 5 tailored questions",
+                `You'll be asked ${questionCount} tailored questions`,
                 "Speak naturally — AI captures your responses",
-                "We never record your video",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-amber-800/80">
-                  <CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                <li key={item} className="flex items-start gap-2 text-sm text-amber-800/80 dark:text-amber-300/80">
+                  <CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-500 shrink-0" />
                   {item}
                 </li>
               ))}

@@ -11,6 +11,8 @@ interface Interview {
   jobPosition: string;
   jobExperience: string;
   createdAt: string | null;
+  interviewType: string | null;
+  difficulty: string | null;
 }
 
 export default function DashboardPage() {
@@ -44,6 +46,8 @@ export default function DashboardPage() {
             jobPosition={interview.jobPosition}
             jobExperience={interview.jobExperience}
             createdAt={interview.createdAt}
+            interviewType={interview.interviewType}
+            difficulty={interview.difficulty}
             onDeleted={loadInterviews}
           />
         ))}
