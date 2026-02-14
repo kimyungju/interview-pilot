@@ -341,11 +341,11 @@ export default function StartInterviewPage() {
         </div>
 
         {/* Webcam Panel */}
-        <div className="flex justify-center relative">
+        <div className="flex justify-center relative h-72 overflow-hidden rounded-xl">
           <Webcam
             ref={webcamRef}
             mirrored
-            className="rounded-xl w-full h-72 object-cover border"
+            className="w-full h-full object-cover border"
           />
           {countdown !== null && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-xl">
