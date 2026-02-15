@@ -9,6 +9,7 @@ export async function generateFromPrompt(prompt: string): Promise<string> {
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
     response_format: { type: "json_object" },
+    temperature: 1.2,
   });
   return response.choices[0].message.content || "";
 }
