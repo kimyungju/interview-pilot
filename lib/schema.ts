@@ -10,6 +10,7 @@ export const MockInterview = pgTable("mockInterview", {
   difficulty: varchar("difficulty").default("mid"),
   resumeText: text("resumeText"),
   questionCount: varchar("questionCount").default("5"),
+  language: varchar("language").default("en"),
   createdBy: varchar("createdBy").notNull(),
   createdAt: varchar("createdAt"),
   mockId: varchar("mockId").notNull(),

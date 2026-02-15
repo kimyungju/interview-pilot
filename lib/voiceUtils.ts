@@ -14,6 +14,16 @@ const MALE_NAMES = [
   "siri male", "google uk english male", "male",
 ];
 
+const KOREAN_FEMALE_NAMES = [
+  "sun-hi", "yuna", "jihye", "sora", "minji", "heami",
+  "korean female", "여성",
+];
+
+const KOREAN_MALE_NAMES = [
+  "hyunsu", "injoon", "minho", "jinho",
+  "korean male", "남성",
+];
+
 export function getStoredVoiceGender(): VoiceGender {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -32,8 +42,13 @@ export function classifyVoiceGender(
   voice: SpeechSynthesisVoice
 ): VoiceGender | null {
   const name = voice.name.toLowerCase();
-  if (FEMALE_NAMES.some((f) => name.includes(f))) return "female";
-  if (MALE_NAMES.some((m) => name.includes(m))) return "male";
+  const isKorean = voice.lang.startsWith("ko");
+
+  const femaleNames = isKorean ? KOREAN_FEMALE_NAMES : FEMALE_NAMES;
+  const maleNames = isKorean ? KOREAN_MALE_NAMES : MALE_NAMES;
+
+  if (femaleNames.some((f) => name.includes(f))) return "female";
+  if (maleNames.some((m) => name.includes(m))) return "male";
   return null;
 }
 
@@ -50,26 +65,28 @@ export function scoreVoiceQuality(voice: SpeechSynthesisVoice): number {
 
 export function selectVoice(
   voices: SpeechSynthesisVoice[],
-  preferredGender: VoiceGender
+  preferredGender: VoiceGender,
+  language: "en" | "ko" = "en"
 ): SpeechSynthesisVoice | null {
-  const english = voices.filter((v) => v.lang.startsWith("en"));
-  if (english.length === 0) return null;
+  const langPrefix = language === "ko" ? "ko" : "en";
+  const filtered = voices.filter((v) => v.lang.startsWith(langPrefix));
+  if (filtered.length === 0) return null;
 
-  const matched = english.filter(
+  const matched = filtered.filter(
     (v) => classifyVoiceGender(v) === preferredGender
   );
   if (matched.length > 0) {
     return matched.sort((a, b) => scoreVoiceQuality(b) - scoreVoiceQuality(a))[0];
   }
 
-  const unclassified = english.filter((v) => classifyVoiceGender(v) === null);
+  const unclassified = filtered.filter((v) => classifyVoiceGender(v) === null);
   if (unclassified.length > 0) {
     return unclassified.sort(
       (a, b) => scoreVoiceQuality(b) - scoreVoiceQuality(a)
     )[0];
   }
 
-  return english.sort(
+  return filtered.sort(
     (a, b) => scoreVoiceQuality(b) - scoreVoiceQuality(a)
   )[0];
 }

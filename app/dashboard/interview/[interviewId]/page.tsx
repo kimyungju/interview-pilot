@@ -13,6 +13,7 @@ import {
   selectVoice,
   loadVoices,
 } from "@/lib/voiceUtils";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface InterviewData {
   jobPosition: string;
@@ -23,13 +24,6 @@ interface InterviewData {
   questionCount?: string | null;
 }
 
-const typeLabels: Record<string, string> = {
-  general: "General",
-  behavioral: "Behavioral",
-  technical: "Technical",
-  "system-design": "System Design",
-};
-
 export default function InterviewPage() {
   const params = useParams<{ interviewId: string }>();
   const router = useRouter();
@@ -38,6 +32,7 @@ export default function InterviewPage() {
   const [voiceGender, setVoiceGender] = useState<VoiceGender>("female");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [previewPlaying, setPreviewPlaying] = useState(false);
+  const { t, language } = useTranslation();
 
   useEffect(() => {
     if (params.interviewId) {
@@ -61,11 +56,9 @@ export default function InterviewPage() {
   const handlePreview = () => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(
-      "Hello! I'll be your interviewer today. Let's get started."
-    );
-    utterance.lang = "en-US";
-    const voice = selectVoice(voices, voiceGender);
+    const utterance = new SpeechSynthesisUtterance(t("setup.previewText"));
+    utterance.lang = language === "ko" ? "ko-KR" : "en-US";
+    const voice = selectVoice(voices, voiceGender, language);
     if (voice) utterance.voice = voice;
     utterance.onstart = () => setPreviewPlaying(true);
     utterance.onend = () => setPreviewPlaying(false);
@@ -89,10 +82,10 @@ export default function InterviewPage() {
     <div className="py-12">
       <div className="mb-8">
         <h2 className="font-bold text-3xl font-display tracking-tight">
-          Let&apos;s Get Started
+          {t("setup.title")}
         </h2>
         <p className="text-muted-foreground mt-1.5">
-          Review the details below and start your mock interview when ready
+          {t("setup.subtitle")}
         </p>
       </div>
 
@@ -101,30 +94,30 @@ export default function InterviewPage() {
           <div className="p-6 rounded-xl border bg-card">
             <div className="space-y-3">
               <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Position</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("setup.position")}</span>
                 <p className="text-lg font-semibold mt-0.5">{interview.jobPosition}</p>
               </div>
               {interview.jobDesc && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</span>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("setup.description")}</span>
                   <p className="text-sm text-muted-foreground mt-0.5">{interview.jobDesc}</p>
                 </div>
               )}
               {interview.jobExperience && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Experience</span>
-                  <p className="text-sm font-medium mt-0.5">{interview.jobExperience} years</p>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("setup.experience")}</span>
+                  <p className="text-sm font-medium mt-0.5">{interview.jobExperience} {t("setup.years")}</p>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 pt-1">
                 <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                  {typeLabels[interviewType] || "General"}
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground capitalize">
-                  {difficulty}
+                  {t(`types.${interviewType}`)}
                 </span>
                 <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
-                  {questionCount} questions
+                  {t(`difficulties.${difficulty}`)}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
+                  {questionCount} {t("setup.questionsCount")}
                 </span>
               </div>
             </div>
@@ -132,13 +125,13 @@ export default function InterviewPage() {
 
           <div className="p-5 rounded-xl border border-amber-200/60 bg-amber-50/50 dark:border-amber-700/40 dark:bg-amber-950/20">
             <h3 className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
-              <Lightbulb className="h-5 w-5" /> Before you begin
+              <Lightbulb className="h-5 w-5" /> {t("setup.beforeYouBegin")}
             </h3>
             <ul className="mt-3 space-y-2">
               {[
-                "Enable your webcam and microphone",
-                `You'll be asked ${questionCount} tailored questions`,
-                "Speak naturally — AI captures your responses",
+                t("setup.enableWebcam"),
+                t("setup.tailoredQuestions", { count: questionCount }),
+                t("setup.speakNaturally"),
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-amber-800/80 dark:text-amber-300/80">
                   <CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-500 shrink-0" />
@@ -150,21 +143,21 @@ export default function InterviewPage() {
 
           <div className="p-5 rounded-xl border bg-card">
             <h3 className="flex items-center gap-2 font-medium text-sm">
-              <Volume2 className="h-4 w-4" /> Interviewer Voice
+              <Volume2 className="h-4 w-4" /> {t("setup.interviewerVoice")}
             </h3>
             <div className="flex items-center gap-3 mt-3">
               <div className="flex rounded-lg border-2 border-border overflow-hidden">
                 {(["female", "male"] as const).map((g) => (
                   <button
                     key={g}
-                    className={`px-4 py-1.5 text-sm font-medium transition-colors capitalize ${
+                    className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                       voiceGender === g
                         ? "bg-primary text-primary-foreground"
                         : "bg-background hover:bg-accent"
                     }`}
                     onClick={() => handleGenderChange(g)}
                   >
-                    {g}
+                    {t(`setup.${g}`)}
                   </button>
                 ))}
               </div>
@@ -175,11 +168,11 @@ export default function InterviewPage() {
                 disabled={voices.length === 0 || previewPlaying}
               >
                 <Play className="mr-1.5 h-3.5 w-3.5" />
-                {previewPlaying ? "Playing..." : "Preview"}
+                {previewPlaying ? t("setup.playing") : t("setup.preview")}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2.5">
-              Natural-sounding voice reads questions aloud
+              {t("setup.voiceDesc")}
             </p>
           </div>
         </div>
@@ -197,7 +190,7 @@ export default function InterviewPage() {
               onClick={() => setWebcamEnabled(true)}
             >
               <WebcamIcon className="h-12 w-12 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground mt-3">Click to enable webcam</p>
+              <p className="text-sm text-muted-foreground mt-3">{t("setup.clickWebcam")}</p>
             </div>
           )}
 
@@ -206,7 +199,7 @@ export default function InterviewPage() {
             className="w-full rounded-xl py-6 text-base"
             onClick={() => router.push(`/dashboard/interview/${params.interviewId}/start`)}
           >
-            Start Interview <ArrowRight className="ml-2 h-5 w-5" />
+            {t("setup.startInterview")} <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </div>

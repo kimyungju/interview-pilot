@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { createInterview } from "@/app/actions/interview";
 import { extractTextFromPdf } from "@/app/actions/pdf";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 type Step = "choose" | "form" | "resume";
 type Mode = "auto" | "content";
@@ -35,19 +36,15 @@ type InterviewType = "general" | "behavioral" | "technical" | "system-design";
 type Difficulty = "junior" | "mid" | "senior";
 type QuestionCount = "3" | "5" | "10";
 
-const interviewTypes: { value: InterviewType; label: string; icon: React.ReactNode; desc: string }[] = [
-  { value: "general", label: "General", icon: <Zap className="h-4 w-4" />, desc: "Mixed questions" },
-  { value: "behavioral", label: "Behavioral", icon: <Users className="h-4 w-4" />, desc: "STAR format" },
-  { value: "technical", label: "Technical", icon: <Code className="h-4 w-4" />, desc: "Coding & concepts" },
-  { value: "system-design", label: "System Design", icon: <Boxes className="h-4 w-4" />, desc: "Architecture" },
-];
+const interviewTypeIcons: Record<InterviewType, React.ReactNode> = {
+  general: <Zap className="h-4 w-4" />,
+  behavioral: <Users className="h-4 w-4" />,
+  technical: <Code className="h-4 w-4" />,
+  "system-design": <Boxes className="h-4 w-4" />,
+};
 
-const difficulties: { value: Difficulty; label: string }[] = [
-  { value: "junior", label: "Junior" },
-  { value: "mid", label: "Mid" },
-  { value: "senior", label: "Senior" },
-];
-
+const interviewTypeValues: InterviewType[] = ["general", "behavioral", "technical", "system-design"];
+const difficultyValues: Difficulty[] = ["junior", "mid", "senior"];
 const questionCounts: QuestionCount[] = ["3", "5", "10"];
 
 export default function AddNewInterview() {
@@ -72,6 +69,7 @@ export default function AddNewInterview() {
   const [dragOver, setDragOver] = useState(false);
 
   const router = useRouter();
+  const { t, language } = useTranslation();
 
   const resetState = () => {
     setStep("choose");
@@ -166,6 +164,7 @@ export default function AddNewInterview() {
           difficulty,
           resumeText: resumeText || undefined,
           questionCount,
+          language,
         }
       );
       handleOpenChange(false);
@@ -208,7 +207,7 @@ export default function AddNewInterview() {
         {extracting ? (
           <>
             <Loader className="h-8 w-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Extracting text...</p>
+            <p className="text-sm text-muted-foreground">{t("create.extracting")}</p>
           </>
         ) : pdfFile ? (
           <div className="flex items-center gap-2">
@@ -229,9 +228,9 @@ export default function AddNewInterview() {
           <>
             <Upload className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm font-medium">
-              Drop your PDF here or click to browse
+              {t("create.dropPdf")}
             </p>
-            <p className="text-xs text-muted-foreground">PDF only, up to 5MB</p>
+            <p className="text-xs text-muted-foreground">{t("create.pdfOnly")}</p>
           </>
         )}
       </div>
@@ -244,7 +243,7 @@ export default function AddNewInterview() {
   const orDivider = (
     <div className="flex items-center gap-3 my-1">
       <div className="flex-1 border-t border-border" />
-      <span className="text-xs text-muted-foreground">or</span>
+      <span className="text-xs text-muted-foreground">{t("create.or")}</span>
       <div className="flex-1 border-t border-border" />
     </div>
   );
@@ -257,7 +256,7 @@ export default function AddNewInterview() {
             <Plus className="h-6 w-6 text-primary" />
           </div>
           <span className="font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-300">
-            New Interview
+            {t("create.newInterview")}
           </span>
         </div>
       </DialogTrigger>
@@ -266,10 +265,10 @@ export default function AddNewInterview() {
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
-                Create a new interview
+                {t("create.title")}
               </DialogTitle>
               <DialogDescription>
-                Choose how you&apos;d like to generate your interview questions.
+                {t("create.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 mt-4">
@@ -281,9 +280,9 @@ export default function AddNewInterview() {
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="font-semibold">Auto Generate</p>
+                  <p className="font-semibold">{t("create.autoGenerate")}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Generate questions from job details
+                    {t("create.autoGenerateDesc")}
                   </p>
                 </div>
               </button>
@@ -295,9 +294,9 @@ export default function AddNewInterview() {
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="font-semibold">From Your Content</p>
+                  <p className="font-semibold">{t("create.fromContent")}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Paste your own reference material
+                    {t("create.fromContentDesc")}
                   </p>
                 </div>
               </button>
@@ -310,13 +309,13 @@ export default function AddNewInterview() {
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
                 {mode === "auto"
-                  ? "Tell us about your interview"
-                  : "Paste your reference content"}
+                  ? t("create.formTitleAuto")
+                  : t("create.formTitleContent")}
               </DialogTitle>
               <DialogDescription>
                 {mode === "auto"
-                  ? "Add details about the job position, description, and experience."
-                  : "Provide the job position and paste any reference material (resume, job posting, notes, etc.)."}
+                  ? t("create.formDescAuto")
+                  : t("create.formDescContent")}
               </DialogDescription>
             </DialogHeader>
             <form
@@ -335,11 +334,11 @@ export default function AddNewInterview() {
                   htmlFor="jobPosition"
                   className="block text-sm font-medium mb-1.5"
                 >
-                  Job Position
+                  {t("create.jobPosition")}
                 </label>
                 <Input
                   id="jobPosition"
-                  placeholder="e.g. Full Stack Developer"
+                  placeholder={t("create.jobPositionPlaceholder")}
                   required
                   value={jobPosition}
                   onChange={(e) => setJobPosition(e.target.value)}
@@ -352,11 +351,11 @@ export default function AddNewInterview() {
                       htmlFor="jobDesc"
                       className="block text-sm font-medium mb-1.5"
                     >
-                      Job Description / Tech Stack
+                      {t("create.jobDesc")}
                     </label>
                     <Textarea
                       id="jobDesc"
-                      placeholder="e.g. React, Node.js, PostgreSQL..."
+                      placeholder={t("create.jobDescPlaceholder")}
                       required
                       value={jobDesc}
                       onChange={(e) => setJobDesc(e.target.value)}
@@ -367,12 +366,12 @@ export default function AddNewInterview() {
                       htmlFor="jobExperience"
                       className="block text-sm font-medium mb-1.5"
                     >
-                      Years of Experience
+                      {t("create.yearsOfExp")}
                     </label>
                     <Input
                       id="jobExperience"
                       type="number"
-                      placeholder="e.g. 3"
+                      placeholder={t("create.yearsOfExpPlaceholder")}
                       required
                       min={0}
                       max={50}
@@ -384,13 +383,13 @@ export default function AddNewInterview() {
               ) : (
                 <div className="space-y-3">
                   <label className="block text-sm font-medium mb-1.5">
-                    Reference Material
+                    {t("create.referenceMaterial")}
                   </label>
                   {pdfUploadZone}
                   {orDivider}
                   <Textarea
                     id="referenceContent"
-                    placeholder="Paste your resume, job posting, study notes, or any content you want questions generated from..."
+                    placeholder={t("create.pasteReference")}
                     required={!referenceContent}
                     rows={8}
                     value={referenceContent}
@@ -402,22 +401,22 @@ export default function AddNewInterview() {
               {/* Interview Type */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Interview Type
+                  {t("create.interviewType")}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
-                  {interviewTypes.map((t) => (
+                  {interviewTypeValues.map((tv) => (
                     <button
-                      key={t.value}
+                      key={tv}
                       type="button"
-                      onClick={() => setInterviewType(t.value)}
+                      onClick={() => setInterviewType(tv)}
                       className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all duration-200 text-center ${
-                        interviewType === t.value
+                        interviewType === tv
                           ? "border-primary bg-primary/5 text-primary"
                           : "border-border hover:border-primary/30 text-muted-foreground"
                       }`}
                     >
-                      {t.icon}
-                      <span className="text-xs font-medium">{t.label}</span>
+                      {interviewTypeIcons[tv]}
+                      <span className="text-xs font-medium">{t(`types.${tv}`)}</span>
                     </button>
                   ))}
                 </div>
@@ -427,28 +426,28 @@ export default function AddNewInterview() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Difficulty
+                    {t("create.difficulty")}
                   </label>
                   <div className="flex rounded-lg border-2 border-border overflow-hidden">
-                    {difficulties.map((d) => (
+                    {difficultyValues.map((d) => (
                       <button
-                        key={d.value}
+                        key={d}
                         type="button"
-                        onClick={() => setDifficulty(d.value)}
+                        onClick={() => setDifficulty(d)}
                         className={`flex-1 py-2 text-xs font-medium transition-all duration-200 ${
-                          difficulty === d.value
+                          difficulty === d
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-accent text-muted-foreground"
                         }`}
                       >
-                        {d.label}
+                        {t(`difficulties.${d}`)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Questions
+                    {t("create.questions")}
                   </label>
                   <div className="flex rounded-lg border-2 border-border overflow-hidden">
                     {questionCounts.map((c) => (
@@ -475,7 +474,7 @@ export default function AddNewInterview() {
                   variant="ghost"
                   onClick={() => setStep("choose")}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  <ArrowLeft className="mr-2 h-4 w-4" /> {t("create.back")}
                 </Button>
                 <div className="flex gap-3">
                   <Button
@@ -483,18 +482,18 @@ export default function AddNewInterview() {
                     variant="ghost"
                     onClick={() => handleOpenChange(false)}
                   >
-                    Cancel
+                    {t("create.cancel")}
                   </Button>
                   {mode === "auto" ? (
-                    <Button type="submit">Next &rarr;</Button>
+                    <Button type="submit">{t("create.next")}</Button>
                   ) : (
                     <Button type="submit" disabled={loading || !referenceContent}>
                       {loading ? (
                         <>
-                          <Loader className="animate-spin mr-2" /> Generating...
+                          <Loader className="animate-spin mr-2" /> {t("create.generating")}
                         </>
                       ) : (
-                        "Start Interview"
+                        t("create.startInterview")
                       )}
                     </Button>
                   )}
@@ -508,24 +507,23 @@ export default function AddNewInterview() {
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-display">
-                Add your resume
+                {t("create.resumeTitle")}
               </DialogTitle>
               <DialogDescription>
-                Upload a PDF or paste your resume text so AI can personalize
-                questions to your experience. This step is optional.
+                {t("create.resumeDesc")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-5 mt-4">
               {pdfUploadZone}
               {orDivider}
               <Textarea
-                placeholder="Paste your resume text here for personalized questions..."
+                placeholder={t("create.pasteResume")}
                 rows={6}
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                AI will probe your specific experience and skills
+                {t("create.aiProbe")}
               </p>
 
               <div className="flex gap-3 justify-between pt-2">
@@ -534,7 +532,7 @@ export default function AddNewInterview() {
                   variant="ghost"
                   onClick={() => setStep("form")}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  <ArrowLeft className="mr-2 h-4 w-4" /> {t("create.back")}
                 </Button>
                 <div className="flex gap-3">
                   <Button
@@ -543,7 +541,7 @@ export default function AddNewInterview() {
                     onClick={() => handleSubmit()}
                     disabled={loading}
                   >
-                    Skip
+                    {t("create.skip")}
                   </Button>
                   <Button
                     type="button"
@@ -552,10 +550,10 @@ export default function AddNewInterview() {
                   >
                     {loading ? (
                       <>
-                        <Loader className="animate-spin mr-2" /> Generating...
+                        <Loader className="animate-spin mr-2" /> {t("create.generating")}
                       </>
                     ) : (
-                      "Start Interview"
+                      t("create.startInterview")
                     )}
                   </Button>
                 </div>

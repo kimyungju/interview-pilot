@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AddNewInterview from "./_components/AddNewInterview";
 import InterviewCard from "./_components/InterviewCard";
 import { getInterviewList } from "@/app/actions/interview";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Interview {
   id: number;
@@ -17,6 +18,7 @@ interface Interview {
 
 export default function DashboardPage() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
+  const { t } = useTranslation();
 
   function loadInterviews() {
     getInterviewList().then(setInterviews);
@@ -30,10 +32,10 @@ export default function DashboardPage() {
     <div className="py-12">
       <div className="mb-8">
         <h2 className="font-bold text-3xl font-display tracking-tight">
-          Dashboard
+          {t("dashboard.title")}
         </h2>
         <p className="text-muted-foreground mt-1.5">
-          Create and practice AI-powered mock interviews
+          {t("dashboard.subtitle")}
         </p>
       </div>
 

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader, Mic, Volume2 } from "lucide-react";
 import Webcam from "react-webcam";
 import { getStoredVoiceGender, selectVoice, loadVoices } from "@/lib/voiceUtils";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface QuestionAnswer {
   question: string;
@@ -18,6 +19,7 @@ interface QuestionAnswer {
 export default function StartInterviewPage() {
   const params = useParams<{ interviewId: string }>();
   const router = useRouter();
+  const { t, language } = useTranslation();
 
   const [questions, setQuestions] = useState<QuestionAnswer[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -58,7 +60,7 @@ export default function StartInterviewPage() {
         const rec = new SpeechRecognition();
         rec.continuous = true;
         rec.interimResults = false;
-        rec.lang = "en-US";
+        rec.lang = language === "ko" ? "ko-KR" : "en-US";
         rec.onresult = (event: SpeechRecognitionEvent) => {
           const parts: string[] = [];
           for (let i = 0; i < event.results.length; i++) {
@@ -75,7 +77,7 @@ export default function StartInterviewPage() {
         recognitionRef.current = rec;
       }
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     loadVoices().then(setVoices);
@@ -144,11 +146,11 @@ export default function StartInterviewPage() {
   const handleTextToSpeech = (text: string) => {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
+      utterance.lang = language === "ko" ? "ko-KR" : "en-US";
       const preferredGender = getStoredVoiceGender();
       const availableVoices =
         voices.length > 0 ? voices : window.speechSynthesis.getVoices();
-      const selectedVoice = selectVoice(availableVoices, preferredGender);
+      const selectedVoice = selectVoice(availableVoices, preferredGender, language);
       if (selectedVoice) utterance.voice = selectedVoice;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
@@ -177,7 +179,8 @@ export default function StartInterviewPage() {
         params.interviewId,
         questions[activeIndex].question,
         questions[activeIndex].answer,
-        userAnswer
+        userAnswer,
+        language
       );
 
       if (activeIndex < questions.length - 1) {
@@ -207,7 +210,7 @@ export default function StartInterviewPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground">
-            Question {activeIndex + 1} of {questions.length}
+            {t("interview.questionOf", { current: activeIndex + 1, total: questions.length })}
           </span>
           <span className="text-sm font-medium text-primary">
             {Math.round(((activeIndex + 1) / questions.length) * 100)}%
@@ -258,14 +261,14 @@ export default function StartInterviewPage() {
                 handleTextToSpeech(questions[activeIndex].question)
               }
             >
-              <Volume2 className="mr-1.5 h-4 w-4" /> Read Aloud
+              <Volume2 className="mr-1.5 h-4 w-4" /> {t("interview.readAloud")}
             </Button>
           </div>
 
           {/* User Answer Display */}
           <div className="p-6 rounded-xl border bg-card min-h-[120px]">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Your Answer
+              {t("interview.yourAnswer")}
             </p>
             <p
               className={
@@ -274,7 +277,7 @@ export default function StartInterviewPage() {
                   : "text-muted-foreground/60 italic"
               }
             >
-              {userAnswer || "Start recording to see your answer here..."}
+              {userAnswer || t("interview.recordPlaceholder")}
             </p>
           </div>
 
@@ -293,11 +296,11 @@ export default function StartInterviewPage() {
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/60" />
                         <span className="relative inline-flex h-3 w-3 rounded-full bg-white" />
                       </span>
-                      Stop Recording
+                      {t("interview.stopRecording")}
                     </>
                   ) : (
                     <>
-                      <Mic className="mr-2 h-4 w-4" /> Record Answer
+                      <Mic className="mr-2 h-4 w-4" /> {t("interview.recordAnswer")}
                     </>
                   )}
                 </Button>
@@ -309,19 +312,19 @@ export default function StartInterviewPage() {
                   {loading ? (
                     <>
                       <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
-                      Submitting...
+                      {t("interview.submitting")}
                     </>
                   ) : activeIndex === questions.length - 1 ? (
-                    "Submit & Finish"
+                    t("interview.submitFinish")
                   ) : (
-                    "Submit & Next"
+                    t("interview.submitNext")
                   )}
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <Textarea
-                  placeholder="Type your answer here..."
+                  placeholder={t("interview.typePlaceholder")}
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   rows={4}
@@ -333,12 +336,12 @@ export default function StartInterviewPage() {
                   {loading ? (
                     <>
                       <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
-                      Submitting...
+                      {t("interview.submitting")}
                     </>
                   ) : activeIndex === questions.length - 1 ? (
-                    "Submit & Finish"
+                    t("interview.submitFinish")
                   ) : (
-                    "Submit & Next"
+                    t("interview.submitNext")
                   )}
                 </Button>
               </div>
@@ -357,7 +360,7 @@ export default function StartInterviewPage() {
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 rounded-xl">
               <p className="text-6xl font-bold text-white">{countdown}</p>
               <p className="text-white/80 text-sm mt-2">
-                Starting in...
+                {t("interview.startingIn")}
               </p>
             </div>
           )}

@@ -5,10 +5,13 @@ import { useTheme } from "next-themes";
 import { Brain, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => setMounted(true), []);
 
@@ -17,15 +20,16 @@ export default function Header() {
       <Link href="/" className="flex items-center gap-2.5">
         <Brain className="h-6 w-6 text-primary" />
         <span className="text-lg font-semibold font-display tracking-tight">
-          AI Mock Interview
+          {t("header.title")}
         </span>
       </Link>
       <div className="flex items-center gap-3">
+        <LanguageSwitcher />
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            aria-label="Toggle theme"
+            aria-label={t("header.toggleTheme")}
           >
             {theme === "dark" ? (
               <Sun className="h-5 w-5" />

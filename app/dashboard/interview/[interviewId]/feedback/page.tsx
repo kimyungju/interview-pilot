@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, Star, ArrowLeft, Trophy, Download } from "lucide-react";
 import { generatePdf } from "@/lib/generatePdf";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Competencies {
   technicalKnowledge: number;
@@ -65,12 +66,7 @@ function getBarColor(score: number): string {
   return "bg-red-500";
 }
 
-const competencyLabels: Record<string, string> = {
-  technicalKnowledge: "Technical Knowledge",
-  communicationClarity: "Communication",
-  problemSolving: "Problem Solving",
-  relevance: "Relevance",
-};
+const competencyKeys = ["technicalKnowledge", "communicationClarity", "problemSolving", "relevance"] as const;
 
 function CompetencyBar({ label, score }: { label: string; score: number }) {
   return (
@@ -91,6 +87,14 @@ export default function FeedbackPage() {
   const params = useParams<{ interviewId: string }>();
   const router = useRouter();
   const [answers, setAnswers] = useState<AnswerData[]>([]);
+  const { t, language } = useTranslation();
+
+  const competencyLabels: Record<string, string> = {
+    technicalKnowledge: t("feedback.technicalKnowledge"),
+    communicationClarity: t("feedback.communication"),
+    problemSolving: t("feedback.problemSolving"),
+    relevance: t("feedback.relevance"),
+  };
 
   useEffect(() => {
     if (params.interviewId) {
@@ -117,8 +121,15 @@ export default function FeedbackPage() {
 
   const ratingNum = parseFloat(overallRating);
 
-  const handleDownloadPdf = () => {
-    generatePdf(answers, overallRating);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    try {
+      await generatePdf(answers, overallRating, language);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -129,10 +140,10 @@ export default function FeedbackPage() {
           <Trophy className="h-8 w-8 text-primary" />
         </div>
         <h2 className="text-3xl font-bold font-display tracking-tight">
-          Interview Complete
+          {t("feedback.title")}
         </h2>
         <p className="text-muted-foreground mt-2">
-          Here&apos;s how you did — review each answer below
+          {t("feedback.subtitle")}
         </p>
       </div>
 
@@ -141,7 +152,7 @@ export default function FeedbackPage() {
         <div className="flex items-center gap-2">
           <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
           <span className="text-sm font-medium text-muted-foreground">
-            Overall Rating
+            {t("feedback.overallRating")}
           </span>
         </div>
         <div
@@ -183,13 +194,13 @@ export default function FeedbackPage() {
                 {enhanced?.competencies && (
                   <div className="p-4 rounded-lg border bg-card space-y-2.5">
                     <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-muted-foreground">
-                      Competency Scores
+                      {t("feedback.competencyScores")}
                     </p>
-                    {Object.entries(enhanced.competencies).map(([key, score]) => (
+                    {competencyKeys.map((key) => (
                       <CompetencyBar
                         key={key}
                         label={competencyLabels[key] || key}
-                        score={score}
+                        score={enhanced.competencies[key]}
                       />
                     ))}
                   </div>
@@ -200,7 +211,7 @@ export default function FeedbackPage() {
                   className={`p-4 rounded-lg border ${getRatingBg(rating)}`}
                 >
                   <p className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-70">
-                    Rating
+                    {t("feedback.rating")}
                   </p>
                   <p
                     className={`text-lg font-bold ${getRatingColor(rating)}`}
@@ -213,7 +224,7 @@ export default function FeedbackPage() {
                 {enhanced?.strengths && (
                   <div className="p-4 rounded-lg bg-emerald-50/50 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50">
                     <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1.5">
-                      Strengths
+                      {t("feedback.strengths")}
                     </p>
                     <p className="text-sm text-foreground/80 leading-relaxed">
                       {enhanced.strengths}
@@ -225,7 +236,7 @@ export default function FeedbackPage() {
                 {enhanced?.improvements && (
                   <div className="p-4 rounded-lg bg-amber-50/50 border border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/50">
                     <p className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-1.5">
-                      Areas to Improve
+                      {t("feedback.improvements")}
                     </p>
                     <p className="text-sm text-foreground/80 leading-relaxed">
                       {enhanced.improvements}
@@ -236,20 +247,20 @@ export default function FeedbackPage() {
                 {/* Your Answer */}
                 <div className="p-4 rounded-lg bg-red-50/50 border border-red-100 dark:bg-red-950/20 dark:border-red-900/50">
                   <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1.5">
-                    Your Answer
+                    {t("feedback.yourAnswer")}
                   </p>
                   <p className="text-sm text-foreground/80 leading-relaxed">
-                    {answer.userAns || "No answer recorded"}
+                    {answer.userAns || t("feedback.noAnswer")}
                   </p>
                 </div>
 
                 {/* Suggested Answer (enhanced) or Ideal Answer (legacy) */}
                 <div className="p-4 rounded-lg bg-emerald-50/50 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50">
                   <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1.5">
-                    {enhanced?.suggestedAnswer ? "Suggested Answer" : "Ideal Answer"}
+                    {enhanced?.suggestedAnswer ? t("feedback.suggestedAnswer") : t("feedback.idealAnswer")}
                   </p>
                   <p className="text-sm text-foreground/80 leading-relaxed">
-                    {enhanced?.suggestedAnswer || answer.correctAns || "N/A"}
+                    {enhanced?.suggestedAnswer || answer.correctAns || t("feedback.na")}
                   </p>
                 </div>
 
@@ -257,7 +268,7 @@ export default function FeedbackPage() {
                 {!enhanced && answer.feedback && (
                   <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/50">
                     <p className="text-xs font-semibold text-blue-500 uppercase tracking-wider mb-1.5">
-                      Feedback
+                      {t("feedback.legacyFeedback")}
                     </p>
                     <p className="text-sm text-foreground/80 leading-relaxed">
                       {answer.feedback}
@@ -276,14 +287,15 @@ export default function FeedbackPage() {
           className="rounded-xl"
           onClick={() => router.push("/dashboard")}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t("feedback.backToDashboard")}
         </Button>
         <Button
           variant="outline"
           className="rounded-xl"
           onClick={handleDownloadPdf}
+          disabled={pdfLoading}
         >
-          <Download className="mr-2 h-4 w-4" /> Download PDF
+          <Download className="mr-2 h-4 w-4" /> {pdfLoading ? t("feedback.generating") : t("feedback.downloadPdf")}
         </Button>
       </div>
     </div>

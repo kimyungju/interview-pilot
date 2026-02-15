@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { loadNotoSansKR } from "@/lib/fontLoader";
 
 interface AnswerData {
   question: string;
@@ -61,7 +62,50 @@ function tryParse(feedback: string | null): EnhancedFeedback | null {
   return null;
 }
 
-export function generatePdf(answers: AnswerData[], overallRating: string) {
+function getLabels(language: string) {
+  if (language === "ko") {
+    return {
+      title: "면접 피드백 보고서",
+      outOf5: "/ 5점",
+      questions: "질문",
+      answered: "답변",
+      avgRating: "평균 평점",
+      technical: "기술",
+      communication: "의사소통",
+      problemSolving: "문제 해결",
+      relevance: "적절성",
+      strengths: "강점",
+      improvements: "개선 사항",
+      yourAnswer: "나의 답변",
+      noAnswer: "답변이 기록되지 않았습니다",
+      suggestedAnswer: "제안 답변",
+      idealAnswer: "이상적인 답변",
+      feedback: "피드백",
+      page: "페이지",
+    };
+  }
+  return {
+    title: "Interview Feedback Report",
+    outOf5: "out of 5",
+    questions: "QUESTIONS",
+    answered: "ANSWERED",
+    avgRating: "AVG RATING",
+    technical: "Technical",
+    communication: "Communication",
+    problemSolving: "Problem Solving",
+    relevance: "Relevance",
+    strengths: "Strengths",
+    improvements: "Areas to Improve",
+    yourAnswer: "Your Answer",
+    noAnswer: "No answer recorded",
+    suggestedAnswer: "Suggested Answer",
+    idealAnswer: "Ideal Answer",
+    feedback: "Feedback",
+    page: "Page",
+  };
+}
+
+export async function generatePdf(answers: AnswerData[], overallRating: string, language: string = "en") {
   const doc = new jsPDF();
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
@@ -70,13 +114,28 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
   let y = 0;
   let page = 1;
 
+  const isKorean = language === "ko";
+  let fontFamily = "helvetica";
+
+  // Load Korean font if needed
+  if (isKorean) {
+    const fontBase64 = await loadNotoSansKR();
+    doc.addFileToVFS("NotoSansKR-Regular.ttf", fontBase64);
+    doc.addFont("NotoSansKR-Regular.ttf", "NotoSansKR", "normal");
+    doc.addFont("NotoSansKR-Regular.ttf", "NotoSansKR", "bold");
+    fontFamily = "NotoSansKR";
+  }
+
+  const L = getLabels(language);
+  const dateLocale = isKorean ? "ko-KR" : "en-US";
+
   // ── Helpers ──
 
   const addFooter = () => {
     doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(fontFamily, "normal");
     doc.setTextColor(...C.textLight);
-    doc.text(`Page ${page}`, pw / 2, ph - 8, { align: "center" });
+    doc.text(`${L.page} ${page}`, pw / 2, ph - 8, { align: "center" });
   };
 
   const checkPage = (needed: number) => {
@@ -95,7 +154,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     accent: RGB
   ) => {
     doc.setFontSize(8.5);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(fontFamily, "normal");
     const lines = doc.splitTextToSize(content, cw - 18);
     const lineH = 4;
     const h = 8 + lines.length * lineH + 4;
@@ -112,13 +171,13 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     // Label
     doc.setTextColor(...accent);
     doc.setFontSize(6.5);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(fontFamily, "bold");
     doc.text(label.toUpperCase(), mx + 7, y + 5.5);
 
     // Content
     doc.setTextColor(...C.textMed);
     doc.setFontSize(8.5);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(fontFamily, "normal");
     doc.text(lines, mx + 7, y + 10.5);
 
     y += h + 2.5;
@@ -135,14 +194,14 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
   // Title
   doc.setTextColor(...C.white);
   doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Interview Feedback Report", mx, 22);
+  doc.setFont(fontFamily, "bold");
+  doc.text(L.title, mx, 22);
 
   // Date
   doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
+  doc.setFont(fontFamily, "normal");
   doc.setTextColor(...C.textLight);
-  const dateStr = new Date().toLocaleDateString("en-US", {
+  const dateStr = new Date().toLocaleDateString(dateLocale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -160,12 +219,12 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
 
   doc.setTextColor(...C.white);
   doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontFamily, "bold");
   doc.text(overallRating, circleX, circleY + 1.5, { align: "center" });
 
   doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.text("out of 5", circleX, circleY + 7, { align: "center" });
+  doc.setFont(fontFamily, "normal");
+  doc.text(L.outOf5, circleX, circleY + 7, { align: "center" });
 
   y = 56;
 
@@ -180,14 +239,14 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
   const valY = y + 11.5;
 
   doc.setFontSize(6.5);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontFamily, "bold");
   doc.setTextColor(...C.textLight);
-  (["QUESTIONS", "ANSWERED", "AVG RATING"] as const).forEach((l, i) =>
+  ([L.questions, L.answered, L.avgRating] as const).forEach((l, i) =>
     doc.text(l, cols[i], labY)
   );
 
   doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(fontFamily, "bold");
   doc.setTextColor(...C.textDark);
   doc.text(`${answers.length}`, cols[0], valY);
   doc.text(`${answered}/${answers.length}`, cols[1], valY);
@@ -209,13 +268,13 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     doc.circle(mx + 4.5, y + 4.5, 4.5, "F");
     doc.setTextColor(...C.white);
     doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(fontFamily, "bold");
     doc.text(`${idx + 1}`, mx + 4.5, y + 5.8, { align: "center" });
 
     // Question text
     doc.setTextColor(...C.textDark);
     doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(fontFamily, "bold");
     const qLines = doc.splitTextToSize(answer.question, cw - 38);
     doc.text(qLines, mx + 13, y + 3.5);
 
@@ -226,7 +285,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     doc.roundedRect(badgeX, y - 0.5, badgeW, 9, 2, 2, "F");
     doc.setTextColor(...C.white);
     doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(fontFamily, "bold");
     doc.text(`${answer.rating || "0"}/5`, badgeX + badgeW / 2, y + 5, {
       align: "center",
     });
@@ -241,10 +300,10 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
       doc.roundedRect(mx, y, cw, 26, 2, 2, "F");
 
       const comps = [
-        ["Technical", enhanced.competencies.technicalKnowledge],
-        ["Communication", enhanced.competencies.communicationClarity],
-        ["Problem Solving", enhanced.competencies.problemSolving],
-        ["Relevance", enhanced.competencies.relevance],
+        [L.technical, enhanced.competencies.technicalKnowledge],
+        [L.communication, enhanced.competencies.communicationClarity],
+        [L.problemSolving, enhanced.competencies.problemSolving],
+        [L.relevance, enhanced.competencies.relevance],
       ] as const;
 
       const barStartX = mx + 30;
@@ -254,7 +313,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
       comps.forEach(([label, score]) => {
         doc.setTextColor(...C.textMed);
         doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
+        doc.setFont(fontFamily, "normal");
         doc.text(label, mx + 4, barY + 2.5);
 
         // Track
@@ -270,7 +329,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
         // Score label
         doc.setTextColor(...C.textMed);
         doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
+        doc.setFont(fontFamily, "bold");
         doc.text(`${score}/5`, pw - mx - 4, barY + 2.5, { align: "right" });
 
         barY += 5.5;
@@ -281,11 +340,11 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
 
     // Colored sections
     if (enhanced?.strengths) {
-      section("Strengths", enhanced.strengths, C.emeraldBg, C.emerald);
+      section(L.strengths, enhanced.strengths, C.emeraldBg, C.emerald);
     }
     if (enhanced?.improvements) {
       section(
-        "Areas to Improve",
+        L.improvements,
         enhanced.improvements,
         C.amberBg,
         C.amber
@@ -293,8 +352,8 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     }
 
     section(
-      "Your Answer",
-      answer.userAns || "No answer recorded",
+      L.yourAnswer,
+      answer.userAns || L.noAnswer,
       C.redBg,
       C.red
     );
@@ -302,7 +361,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     const suggested = enhanced?.suggestedAnswer || answer.correctAns;
     if (suggested) {
       section(
-        enhanced?.suggestedAnswer ? "Suggested Answer" : "Ideal Answer",
+        enhanced?.suggestedAnswer ? L.suggestedAnswer : L.idealAnswer,
         suggested,
         C.blueBg,
         C.blue
@@ -310,7 +369,7 @@ export function generatePdf(answers: AnswerData[], overallRating: string) {
     }
 
     if (!enhanced && answer.feedback) {
-      section("Feedback", answer.feedback, C.blueBg, C.blue);
+      section(L.feedback, answer.feedback, C.blueBg, C.blue);
     }
 
     // Divider between questions
