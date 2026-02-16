@@ -15,7 +15,18 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Create and practice AI-powered mock interviews"
+    "subtitle": "Create and practice AI-powered mock interviews",
+    "searchPlaceholder": "Search by job position...",
+    "filterType": "Type",
+    "filterDifficulty": "Difficulty",
+    "sortBy": "Sort by",
+    "allTypes": "All Types",
+    "allDifficulties": "All Levels",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "clearFilters": "Clear Filters",
+    "noResults": "No interviews match your filters",
+    "noResultsHint": "Try adjusting your search or filter criteria"
   },
   "header": {
     "title": "AI Mock Interview",
@@ -123,7 +134,11 @@
     "submitFinish": "Submit & Finish",
     "submitNext": "Submit & Next",
     "typePlaceholder": "Type your answer here...",
-    "startingIn": "Starting in..."
+    "startingIn": "Starting in...",
+    "followUp": "Follow-up",
+    "skipFollowUp": "Skip",
+    "submitFollowUp": "Submit Follow-up",
+    "generatingFollowUp": "Generating follow-up..."
   },
   "feedback": {
     "title": "Interview Complete",
@@ -142,6 +157,7 @@
     "suggestedAnswer": "Suggested Answer",
     "idealAnswer": "Ideal Answer",
     "na": "N/A",
+    "followUp": "Follow-up",
     "legacyFeedback": "Feedback",
     "backToDashboard": "Back to Dashboard",
     "downloadPdf": "Download PDF",

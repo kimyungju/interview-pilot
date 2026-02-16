@@ -15,7 +15,18 @@
   },
   "dashboard": {
     "title": "대시보드",
-    "subtitle": "AI 기반 모의 면접을 만들고 연습하세요"
+    "subtitle": "AI 기반 모의 면접을 만들고 연습하세요",
+    "searchPlaceholder": "직무로 검색...",
+    "filterType": "유형",
+    "filterDifficulty": "난이도",
+    "sortBy": "정렬",
+    "allTypes": "모든 유형",
+    "allDifficulties": "모든 난이도",
+    "sortNewest": "최신순",
+    "sortOldest": "오래된순",
+    "clearFilters": "필터 초기화",
+    "noResults": "조건에 맞는 면접이 없습니다",
+    "noResultsHint": "검색어나 필터 조건을 조정해 보세요"
   },
   "header": {
     "title": "AI 모의 면접",
@@ -123,7 +134,11 @@
     "submitFinish": "제출 및 완료",
     "submitNext": "제출 및 다음",
     "typePlaceholder": "여기에 답변을 입력하세요...",
-    "startingIn": "시작까지..."
+    "startingIn": "시작까지...",
+    "followUp": "후속 질문",
+    "skipFollowUp": "건너뛰기",
+    "submitFollowUp": "후속 답변 제출",
+    "generatingFollowUp": "후속 질문 생성 중..."
   },
   "feedback": {
     "title": "면접 완료",
@@ -142,6 +157,7 @@
     "suggestedAnswer": "제안 답변",
     "idealAnswer": "이상적인 답변",
     "na": "N/A",
+    "followUp": "후속 질문",
     "legacyFeedback": "피드백",
     "backToDashboard": "대시보드로 돌아가기",
     "downloadPdf": "PDF 다운로드",
