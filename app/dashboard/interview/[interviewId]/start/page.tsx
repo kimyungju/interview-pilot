@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getInterview } from "@/app/actions/interview";
-import { submitAnswer } from "@/app/actions/answer";
+import { submitAnswer, generateFollowUpQuestion } from "@/app/actions/answer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader, Mic, Volume2 } from "lucide-react";
+import { Loader, Mic, Volume2, SkipForward } from "lucide-react";
 import Webcam from "react-webcam";
 import { getStoredVoiceGender, selectVoice, loadVoices } from "@/lib/voiceUtils";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -32,6 +32,10 @@ export default function StartInterviewPage() {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
+  const [isFollowUpMode, setIsFollowUpMode] = useState(false);
+  const [loadingFollowUp, setLoadingFollowUp] = useState(false);
+  const [parentAnswerId, setParentAnswerId] = useState<number | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isRecordingRef = useRef(false);
@@ -85,7 +89,7 @@ export default function StartInterviewPage() {
 
   // Auto-read question, then start countdown after speech ends
   useEffect(() => {
-    if (questions.length === 0 || !speechSupported) return;
+    if (questions.length === 0 || !speechSupported || isFollowUpMode) return;
 
     countdownTimersRef.current.forEach(clearTimeout);
     countdownTimersRef.current = [];
@@ -159,8 +163,26 @@ export default function StartInterviewPage() {
     return null;
   };
 
+  const moveToNext = () => {
+    setFollowUpQuestion(null);
+    setIsFollowUpMode(false);
+    setParentAnswerId(null);
+    setLoadingFollowUp(false);
+
+    if (activeIndex < questions.length - 1) {
+      setActiveIndex((prev) => prev + 1);
+      setUserAnswer("");
+    } else {
+      router.push(`/dashboard/interview/${params.interviewId}/feedback`);
+    }
+  };
+
+  const handleSkipFollowUp = () => {
+    moveToNext();
+  };
+
   const handleSubmitAnswer = async () => {
-    if (!questions[activeIndex]) return;
+    if (!questions[activeIndex] && !isFollowUpMode) return;
 
     window.speechSynthesis?.cancel();
     countdownTimersRef.current.forEach(clearTimeout);
@@ -175,19 +197,48 @@ export default function StartInterviewPage() {
 
     setLoading(true);
     try {
-      await submitAnswer(
-        params.interviewId,
-        questions[activeIndex].question,
-        questions[activeIndex].answer,
-        userAnswer,
-        language
-      );
-
-      if (activeIndex < questions.length - 1) {
-        setActiveIndex((prev) => prev + 1);
-        setUserAnswer("");
+      if (isFollowUpMode && followUpQuestion && parentAnswerId) {
+        // Submit follow-up answer
+        await submitAnswer(
+          params.interviewId,
+          followUpQuestion,
+          "",
+          userAnswer,
+          language,
+          parentAnswerId
+        );
+        moveToNext();
       } else {
-        router.push(`/dashboard/interview/${params.interviewId}/feedback`);
+        // Submit main answer
+        const result = await submitAnswer(
+          params.interviewId,
+          questions[activeIndex].question,
+          questions[activeIndex].answer,
+          userAnswer,
+          language
+        );
+
+        // Generate follow-up question
+        setLoadingFollowUp(true);
+        try {
+          const followUp = await generateFollowUpQuestion(
+            questions[activeIndex].question,
+            questions[activeIndex].answer,
+            userAnswer,
+            language
+          );
+          setParentAnswerId(result.answerId);
+          setFollowUpQuestion(followUp.followUpQuestion);
+          setIsFollowUpMode(true);
+          setUserAnswer("");
+          // Read the follow-up question aloud
+          handleTextToSpeech(followUp.followUpQuestion);
+        } catch {
+          // If follow-up generation fails, just move to next
+          moveToNext();
+        } finally {
+          setLoadingFollowUp(false);
+        }
       }
     } catch (error) {
       console.error("Failed to submit answer:", error);
@@ -265,6 +316,34 @@ export default function StartInterviewPage() {
             </Button>
           </div>
 
+          {/* Follow-up Loading */}
+          {loadingFollowUp && (
+            <div className="p-6 rounded-xl border bg-card flex items-center gap-3">
+              <Loader className="animate-spin h-4 w-4" />
+              <span className="text-sm text-muted-foreground">{t("interview.generatingFollowUp")}</span>
+            </div>
+          )}
+
+          {/* Follow-up Question */}
+          {isFollowUpMode && followUpQuestion && (
+            <div className="p-6 rounded-xl border-2 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-700">
+              <span className="inline-block px-2.5 py-0.5 rounded-md bg-amber-500 text-white text-xs font-semibold mb-3">
+                {t("interview.followUp")}
+              </span>
+              <h3 className="text-lg font-medium leading-relaxed">
+                {followUpQuestion}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 text-muted-foreground hover:text-primary"
+                onClick={() => handleTextToSpeech(followUpQuestion)}
+              >
+                <Volume2 className="mr-1.5 h-4 w-4" /> {t("interview.readAloud")}
+              </Button>
+            </div>
+          )}
+
           {/* User Answer Display */}
           <div className="p-6 rounded-xl border bg-card min-h-[120px]">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -307,19 +386,27 @@ export default function StartInterviewPage() {
 
                 <Button
                   onClick={handleSubmitAnswer}
-                  disabled={loading || !userAnswer}
+                  disabled={loading || loadingFollowUp || !userAnswer}
                 >
                   {loading ? (
                     <>
                       <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
                       {t("interview.submitting")}
                     </>
+                  ) : isFollowUpMode ? (
+                    t("interview.submitFollowUp")
                   ) : activeIndex === questions.length - 1 ? (
                     t("interview.submitFinish")
                   ) : (
                     t("interview.submitNext")
                   )}
                 </Button>
+
+                {isFollowUpMode && (
+                  <Button variant="ghost" onClick={handleSkipFollowUp}>
+                    <SkipForward className="mr-2 h-4 w-4" /> {t("interview.skipFollowUp")}
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -329,21 +416,31 @@ export default function StartInterviewPage() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   rows={4}
                 />
-                <Button
-                  onClick={handleSubmitAnswer}
-                  disabled={loading || !userAnswer}
-                >
-                  {loading ? (
-                    <>
-                      <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
-                      {t("interview.submitting")}
-                    </>
-                  ) : activeIndex === questions.length - 1 ? (
-                    t("interview.submitFinish")
-                  ) : (
-                    t("interview.submitNext")
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleSubmitAnswer}
+                    disabled={loading || loadingFollowUp || !userAnswer}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader className="animate-spin mr-2 h-4 w-4" />{" "}
+                        {t("interview.submitting")}
+                      </>
+                    ) : isFollowUpMode ? (
+                      t("interview.submitFollowUp")
+                    ) : activeIndex === questions.length - 1 ? (
+                      t("interview.submitFinish")
+                    ) : (
+                      t("interview.submitNext")
+                    )}
+                  </Button>
+
+                  {isFollowUpMode && (
+                    <Button variant="ghost" onClick={handleSkipFollowUp}>
+                      <SkipForward className="mr-2 h-4 w-4" /> {t("interview.skipFollowUp")}
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             )}
           </div>
