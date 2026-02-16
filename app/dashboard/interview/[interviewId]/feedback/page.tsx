@@ -35,6 +35,11 @@ interface AnswerData {
   userAns: string | null;
   feedback: string | null;
   rating: string | null;
+  parentAnswerId: number | null;
+}
+
+interface GroupedAnswer extends AnswerData {
+  followUp?: AnswerData | null;
 }
 
 function parseEnhancedFeedback(feedback: string | null): EnhancedFeedback | null {
@@ -86,7 +91,7 @@ function CompetencyBar({ label, score }: { label: string; score: number }) {
 export default function FeedbackPage() {
   const params = useParams<{ interviewId: string }>();
   const router = useRouter();
-  const [answers, setAnswers] = useState<AnswerData[]>([]);
+  const [answers, setAnswers] = useState<GroupedAnswer[]>([]);
   const { t, language } = useTranslation();
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -99,17 +104,24 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     if (params.interviewId) {
-      getAnswers(params.interviewId).then(setAnswers);
+      getAnswers(params.interviewId).then((data) => {
+        const mainAnswers = data.filter((a) => !a.parentAnswerId);
+        const grouped: GroupedAnswer[] = mainAnswers.map((main) => ({
+          ...main,
+          followUp: data.find((f) => f.parentAnswerId === main.id) || null,
+        }));
+        setAnswers(grouped);
+      });
     }
   }, [params.interviewId]);
 
-  const overallRating = answers.length
-    ? (
-        answers.reduce(
-          (sum, a) => sum + (parseFloat(a.rating || "0") || 0),
-          0
-        ) / answers.length
-      ).toFixed(1)
+  const allRatings = answers.flatMap((a) => {
+    const ratings = [parseFloat(a.rating || "0") || 0];
+    if (a.followUp) ratings.push(parseFloat(a.followUp.rating || "0") || 0);
+    return ratings;
+  });
+  const overallRating = allRatings.length
+    ? (allRatings.reduce((sum, r) => sum + r, 0) / allRatings.length).toFixed(1)
     : "0";
 
   if (answers.length === 0) {
@@ -272,6 +284,29 @@ export default function FeedbackPage() {
                     <p className="text-sm text-foreground/80 leading-relaxed">
                       {answer.feedback}
                     </p>
+                  </div>
+                )}
+
+                {/* Follow-up Q&A */}
+                {answer.followUp && (
+                  <div className="mt-2 p-4 rounded-lg border-l-4 border-amber-400 bg-amber-50/30 dark:bg-amber-950/20">
+                    <span className="inline-block px-2 py-0.5 rounded bg-amber-500 text-white text-xs font-semibold mb-2">
+                      {t("feedback.followUp")} — {answer.followUp.rating}/5
+                    </span>
+                    <p className="text-sm font-medium mb-2">{answer.followUp.question}</p>
+                    <div className="p-3 rounded bg-background/50">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">{t("feedback.yourAnswer")}</p>
+                      <p className="text-sm">{answer.followUp.userAns || t("feedback.noAnswer")}</p>
+                    </div>
+                    {(() => {
+                      const efb = parseEnhancedFeedback(answer.followUp.feedback);
+                      return efb?.improvements ? (
+                        <div className="p-3 rounded bg-background/50 mt-2">
+                          <p className="text-xs font-semibold text-amber-500 uppercase mb-1">{t("feedback.improvements")}</p>
+                          <p className="text-sm">{efb.improvements}</p>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 )}
               </CollapsibleContent>
