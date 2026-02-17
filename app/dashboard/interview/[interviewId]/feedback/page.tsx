@@ -10,7 +10,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, Star, ArrowLeft, Trophy, Download } from "lucide-react";
-import { generatePdf } from "@/lib/generatePdf";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Competencies {
@@ -160,6 +159,7 @@ export default function FeedbackPage() {
   const handleDownloadPdf = async () => {
     setPdfLoading(true);
     try {
+      const { generatePdf } = await import("@/lib/generatePdf");
       await generatePdf(answers, overallRating, language);
     } finally {
       setPdfLoading(false);
