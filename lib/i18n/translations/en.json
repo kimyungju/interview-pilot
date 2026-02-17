@@ -190,5 +190,14 @@
     "page": "Page",
     "videoRecording": "Your Recording",
     "scanToWatch": "Scan or click to watch"
+  },
+  "inAppBrowser": {
+    "title": "Open in Browser",
+    "detected": "You're using {browser}'s built-in browser.",
+    "googleBlocked": "Google sign-in is not supported in this browser.",
+    "androidAction": "Open in Chrome",
+    "iosGuide": "Tap the menu icon (⋯ or ⋮) and select \"Open in Safari\" to continue.",
+    "fallback": "Please open this link in Chrome or Safari to sign in with Google.",
+    "dismiss": "Continue anyway"
   }
 }

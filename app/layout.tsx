@@ -3,6 +3,7 @@ import { ThemeProvider } from "next-themes";
 import type { Metadata } from "next";
 import { Libre_Baskerville, Karla, Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { InAppBrowserGuard } from "@/components/InAppBrowserGuard";
 import "./globals.css";
 
 const libreBaskerville = Libre_Baskerville({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className={`${libreBaskerville.variable} ${karla.variable} ${geistMono.variable} ${notoSansKr.variable} antialiased`}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <LanguageProvider>
+              <InAppBrowserGuard />
               {children}
             </LanguageProvider>
           </ThemeProvider>

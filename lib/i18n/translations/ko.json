@@ -190,5 +190,14 @@
     "page": "페이지",
     "videoRecording": "녹화 영상",
     "scanToWatch": "스캔하거나 클릭하여 시청"
+  },
+  "inAppBrowser": {
+    "title": "브라우저에서 열기",
+    "detected": "{browser}의 내장 브라우저를 사용 중입니다.",
+    "googleBlocked": "이 브라우저에서는 구글 로그인이 지원되지 않습니다.",
+    "androidAction": "Chrome에서 열기",
+    "iosGuide": "메뉴 아이콘(⋯ 또는 ⋮)을 탭하고 \"Safari에서 열기\"를 선택하세요.",
+    "fallback": "구글 로그인을 위해 Chrome 또는 Safari에서 이 링크를 열어주세요.",
+    "dismiss": "계속하기"
   }
 }
