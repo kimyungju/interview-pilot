@@ -175,20 +175,45 @@ export default function StartInterviewPage() {
     setCountdown(null);
     window.speechSynthesis?.cancel();
 
-    const utterance = handleTextToSpeech(questions[activeIndex].question);
+    // Chrome bug workaround: cancel() followed immediately by speak() silently
+    // swallows the speech. Adding a 100ms delay between cancel and speak fixes it.
+    let fallbackTimer: ReturnType<typeof setTimeout>;
+    const speakTimer = setTimeout(() => {
+      const text = questions[activeIndex].question;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === "ko" ? "ko-KR" : "en-US";
+      const preferredGender = getStoredVoiceGender();
+      const availableVoices =
+        voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+      const selectedVoice = selectVoice(availableVoices, preferredGender, language);
+      if (selectedVoice) utterance.voice = selectedVoice;
 
-    if (utterance) {
-      utterance.onend = () => startCountdownSequence();
-    } else {
-      startCountdownSequence();
-    }
+      let countdownStarted = false;
+      const triggerCountdown = () => {
+        if (countdownStarted) return;
+        countdownStarted = true;
+        clearTimeout(fallbackTimer);
+        startCountdownSequence();
+      };
+
+      utterance.onend = triggerCountdown;
+      utterance.onerror = triggerCountdown;
+
+      // Fallback: if onend doesn't fire, start countdown after estimated duration
+      const estimatedMs = Math.max(text.length * 80, 3000) + 2000;
+      fallbackTimer = setTimeout(triggerCountdown, estimatedMs);
+
+      window.speechSynthesis.speak(utterance);
+    }, 100);
 
     return () => {
+      clearTimeout(speakTimer);
+      clearTimeout(fallbackTimer!);
       countdownTimersRef.current.forEach(clearTimeout);
       countdownTimersRef.current = [];
       window.speechSynthesis?.cancel();
     };
-  }, [activeIndex, questions.length, speechSupported]);
+  }, [activeIndex, questions.length, speechSupported, language, voices]);
 
   const toggleRecording = () => {
     if (!recognition) return;
@@ -336,12 +361,32 @@ export default function StartInterviewPage() {
           setUserAnswer("");
           // Read the follow-up question aloud, then auto-countdown
           if (speechSupported) {
-            const utterance = handleTextToSpeech(followUp.followUpQuestion);
-            if (utterance) {
-              utterance.onend = () => startCountdownSequence();
-            } else {
-              startCountdownSequence();
-            }
+            window.speechSynthesis?.cancel();
+            // Chrome workaround: delay between cancel and speak
+            setTimeout(() => {
+              const text = followUp.followUpQuestion;
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.lang = language === "ko" ? "ko-KR" : "en-US";
+              const preferredGender = getStoredVoiceGender();
+              const availableVoices =
+                voices.length > 0 ? voices : window.speechSynthesis.getVoices();
+              const selectedVoice = selectVoice(availableVoices, preferredGender, language);
+              if (selectedVoice) utterance.voice = selectedVoice;
+
+              let countdownStarted = false;
+              const triggerCountdown = () => {
+                if (countdownStarted) return;
+                countdownStarted = true;
+                startCountdownSequence();
+              };
+
+              utterance.onend = triggerCountdown;
+              utterance.onerror = triggerCountdown;
+              const estimatedMs = Math.max(text.length * 80, 3000) + 2000;
+              setTimeout(triggerCountdown, estimatedMs);
+
+              window.speechSynthesis.speak(utterance);
+            }, 100);
           } else {
             handleTextToSpeech(followUp.followUpQuestion);
           }
