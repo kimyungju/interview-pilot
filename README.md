@@ -4,14 +4,17 @@ AI-powered mock interview platform with speech recognition, PDF resume upload, a
 
 ## Features
 
-- **AI-generated interview questions** — configurable type, difficulty, and count via OpenAI
-- **Two creation modes** — Auto Generate from job details, or From Your Content with pasted/uploaded reference material
+- **AI-generated interview questions** — configurable type (general, behavioral, technical, system-design), difficulty (junior, mid, senior), and count (3, 5, or 10) via OpenAI
+- **Two creation modes** — Auto Generate from job details, or From Your Content with a question bank and random/in-order selection
+- **Follow-up questions** — AI generates contextual follow-up questions based on your answers
 - **PDF resume upload** — server-side text extraction feeds context to AI question generation
 - **Live speech recognition** — answer questions naturally using the Web Speech API
-- **Text-to-speech** — questions read aloud with a countdown timer before recording
+- **Text-to-speech** — questions read aloud with a countdown timer before recording; choose male or female interviewer voice
 - **Webcam integration** — optional camera feed during interviews
-- **AI-powered feedback** — per-answer ratings with competency scores (Technical Knowledge, Communication Clarity, Problem Solving, Relevance)
+- **AI-powered feedback** — difficulty-aware scoring with competency scores (Technical Knowledge, Communication Clarity, Problem Solving, Relevance) and sandwich feedback method
 - **PDF feedback reports** — download a detailed breakdown of your performance
+- **Dashboard filters** — search, filter by interview type and difficulty, and sort interviews
+- **Internationalization** — English and Korean language support
 - **Dark mode** — theme toggle via `next-themes`
 - **Authentication** — Clerk-based sign-in/sign-up with protected dashboard routes
 
@@ -26,6 +29,7 @@ AI-powered mock interview platform with speech recognition, PDF resume upload, a
 | AI | OpenAI API (gpt-4o-mini) |
 | Styling | Tailwind CSS v4, Shadcn UI (New York style) |
 | Speech | Web Speech API (recognition + synthesis) |
+| i18n | Custom context-based solution (English, Korean) |
 | PDF | pdf-parse (extraction), jsPDF (report generation) |
 
 ## Getting Started
@@ -79,7 +83,7 @@ Create a `.env.local` file from `.env.example` and fill in the following:
 app/
 ├── actions/          # Server actions (interview, answer, pdf)
 ├── dashboard/        # Protected routes
-│   ├── _components/  # Dashboard-scoped components
+│   ├── _components/  # Dashboard-scoped components (AddNewInterview, InterviewCard, InterviewFilters, Header)
 │   └── interview/    # Interview setup, live session, feedback
 ├── sign-in/          # Clerk sign-in page
 └── sign-up/          # Clerk sign-up page
@@ -88,6 +92,9 @@ lib/
 ├── schema.ts         # MockInterview & UserAnswer tables
 ├── gemini.ts         # OpenAI client + JSON response cleaner
 ├── generatePdf.ts    # PDF feedback report generation
+├── voiceUtils.ts     # TTS voice selection and gender classification
+├── fontLoader.ts     # Korean font loader for PDF generation
+├── i18n/             # Internationalization (en.json, ko.json, LanguageContext)
 └── utils.ts          # Shadcn cn() helper
 components/ui/        # Shadcn UI components
 types/                # TypeScript declarations (Web Speech API)
@@ -95,9 +102,9 @@ types/                # TypeScript declarations (Web Speech API)
 
 ## How It Works
 
-1. **Create** — Enter job title, description, experience level, and optionally upload a resume. Choose to auto-generate questions or provide your own reference material. OpenAI generates tailored interview questions.
-2. **Practice** — Answer each question via speech recognition or text input. A webcam feed is available for simulating real interview conditions. Questions are read aloud with a countdown before recording begins.
-3. **Review** — AI evaluates each answer and provides ratings, detailed feedback, and competency scores across four dimensions. Export the full report as a PDF.
+1. **Create** — Enter job title, description, experience level, and optionally upload a resume. Configure interview type, difficulty, and question count. Choose to auto-generate questions or provide your own question bank. OpenAI generates tailored interview questions.
+2. **Practice** — Answer each question via speech recognition or text input. Questions are read aloud (with selectable voice gender) followed by a countdown before recording begins. AI generates follow-up questions based on your answers. A webcam feed is available for simulating real interview conditions.
+3. **Review** — AI evaluates each answer with difficulty-aware scoring, detailed feedback, and competency scores across four dimensions. Follow-up Q&A is shown alongside main questions. Export the full report as a PDF.
 
 ## Scripts
 
