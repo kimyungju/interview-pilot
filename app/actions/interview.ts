@@ -2,10 +2,21 @@
 
 import { db } from "@/lib/db";
 import { MockInterview, UserAnswer } from "@/lib/schema";
-import { generateFromPrompt } from "@/lib/gemini";
+import { generateFromPrompt, generateWithRetry } from "@/lib/gemini";
 import { v4 as uuidv4 } from "uuid";
 import { eq, desc, and } from "drizzle-orm";
 import { currentUser } from "@clerk/nextjs/server";
+
+function findArray(obj: unknown): unknown[] | null {
+  if (Array.isArray(obj)) return obj;
+  if (obj && typeof obj === "object") {
+    for (const val of Object.values(obj)) {
+      const found = findArray(val);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 async function getAuthEmail(): Promise<string> {
   const user = await currentUser();
@@ -134,12 +145,10 @@ export async function suggestQuestions(
     inputPrompt = `${languageInstruction ? languageInstruction + "\n\n" : ""}Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}.\n\n${typeInstruction}\n${difficultyInstruction}${diversityInstruction}\n\nGenerate ${count} interview questions ONLY (no answers). Respond with ONLY a JSON array of question strings. Format: ["Question 1?", "Question 2?"]`;
   }
 
-  const responseText = await generateFromPrompt(inputPrompt);
+  const responseText = await generateWithRetry(inputPrompt);
   try {
     const parsed = JSON.parse(responseText);
-    const arr = Array.isArray(parsed)
-      ? parsed
-      : Object.values(parsed).find(Array.isArray);
+    const arr = findArray(parsed);
     if (!arr || !arr.every((q: unknown) => typeof q === "string")) {
       throw new Error("Invalid format");
     }
@@ -217,14 +226,12 @@ export async function createInterview(
   }
 
   console.log("[createInterview] calling OpenAI...");
-  const responseText = await generateFromPrompt(inputPrompt);
+  const responseText = await generateWithRetry(inputPrompt);
   console.log("[createInterview] OpenAI responded, length:", responseText.length);
   let jsonMockResp: string;
   try {
     const parsed = JSON.parse(responseText);
-    const arr = Array.isArray(parsed)
-      ? parsed
-      : Object.values(parsed).find(Array.isArray);
+    const arr = findArray(parsed);
     if (!arr) throw new Error("No questions array found");
 
     if (selected && selected.length > 0) {

@@ -274,6 +274,10 @@ Respond with ONLY JSON:
 { "followUpQuestion": "Your follow-up question..." }`;
 
   const responseText = await generateFromPrompt(prompt);
-  const parsed = JSON.parse(responseText);
-  return { followUpQuestion: parsed.followUpQuestion as string };
+  try {
+    const parsed = JSON.parse(responseText);
+    return { followUpQuestion: parsed.followUpQuestion as string };
+  } catch {
+    throw new Error("AI returned invalid response. Please try again.");
+  }
 }
