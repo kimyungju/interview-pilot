@@ -165,7 +165,9 @@ export async function createInterview(
     bankSelection?: "random" | "in-order";
   }
 ) {
+  console.log("[createInterview] called for position:", jobPosition);
   const userEmail = await getAuthEmail();
+  console.log("[createInterview] authenticated as:", userEmail);
 
   const interviewType = options?.interviewType || "general";
   const difficulty = options?.difficulty || "mid";
@@ -214,7 +216,9 @@ export async function createInterview(
     inputPrompt = `${languageInstruction ? languageInstruction + "\n\n" : ""}Job position: ${jobPosition}, Job Description: ${jobDesc}, Years of Experience: ${jobExperience}.${resumeSection}\n\n${typeInstruction}\n${difficultyInstruction}${diversityInstruction}\n\nBased on this information, generate ${count} interview questions with detailed answers. Respond with ONLY a JSON array, no other text. Format: [{"question": "...", "answer": "..."}]`;
   }
 
+  console.log("[createInterview] calling OpenAI...");
   const responseText = await generateFromPrompt(inputPrompt);
+  console.log("[createInterview] OpenAI responded, length:", responseText.length);
   let jsonMockResp: string;
   try {
     const parsed = JSON.parse(responseText);

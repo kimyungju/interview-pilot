@@ -6,6 +6,7 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 60_000,
 });
 
 export async function generateFromPrompt(prompt: string, temperature: number = 1.2): Promise<string> {

@@ -60,6 +60,7 @@ export default function AddNewInterview() {
   const [questionCount, setQuestionCount] = useState<QuestionCount>("5");
   const [resumeText, setResumeText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Question Bank state
   const [questionBank, setQuestionBank] = useState("");
@@ -88,6 +89,7 @@ export default function AddNewInterview() {
     setQuestionCount("5");
     setResumeText("");
     setLoading(false);
+    setSubmitError("");
     setPdfFile(null);
     setExtracting(false);
     setExtractError("");
@@ -182,13 +184,16 @@ export default function AddNewInterview() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    console.log("[handleSubmit] called");
 
     setLoading(true);
+    setSubmitError("");
     try {
       const bankLines = questionBank.trim()
         ? questionBank.split("\n").map(q => q.trim()).filter(Boolean)
         : [];
 
+      console.log("[handleSubmit] calling createInterview...");
       const { mockId } = await createInterview(
         jobPosition,
         mode === "auto" ? jobDesc : "",
@@ -204,10 +209,13 @@ export default function AddNewInterview() {
           bankSelection: bankLines.length > 0 ? bankSelection : undefined,
         }
       );
+      console.log("[handleSubmit] createInterview returned mockId:", mockId);
       handleOpenChange(false);
       router.push(`/dashboard/interview/${mockId}`);
     } catch (error) {
-      console.error("Failed to create interview:", error);
+      console.error("[handleSubmit] error:", error);
+      const message = error instanceof Error ? error.message : "Failed to create interview.";
+      setSubmitError(message);
     } finally {
       setLoading(false);
     }
@@ -556,6 +564,10 @@ export default function AddNewInterview() {
                 )}
               </div>
 
+              {submitError && (
+                <p className="text-sm text-destructive">{submitError}</p>
+              )}
+
               <div className="flex gap-3 justify-between pt-2">
                 <Button
                   type="button"
@@ -614,11 +626,23 @@ export default function AddNewInterview() {
                 {t("create.aiProbe")}
               </p>
 
+              {loading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader className="animate-spin h-4 w-4" />
+                  <span>Generating interview questions... this may take up to 30 seconds</span>
+                </div>
+              )}
+
+              {submitError && (
+                <p className="text-sm text-destructive">{submitError}</p>
+              )}
+
               <div className="flex gap-3 justify-between pt-2">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setStep("form")}
+                  disabled={loading}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" /> {t("create.back")}
                 </Button>
@@ -629,7 +653,13 @@ export default function AddNewInterview() {
                     onClick={() => handleSubmit()}
                     disabled={loading}
                   >
-                    {t("create.skip")}
+                    {loading ? (
+                      <>
+                        <Loader className="animate-spin mr-2" /> {t("create.skip")}
+                      </>
+                    ) : (
+                      t("create.skip")
+                    )}
                   </Button>
                   <Button
                     data-testid="start-interview-button"
