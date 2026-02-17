@@ -27,7 +27,9 @@ export default function DashboardPage() {
   const [sortOrder, setSortOrder] = useState("newest");
 
   function loadInterviews() {
-    getInterviewList().then(setInterviews);
+    getInterviewList()
+      .then(setInterviews)
+      .catch((err) => console.error("Failed to load interviews:", err));
   }
 
   useEffect(() => {

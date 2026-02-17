@@ -36,7 +36,9 @@ export default function InterviewPage() {
 
   useEffect(() => {
     if (params.interviewId) {
-      getInterview(params.interviewId).then(setInterview);
+      getInterview(params.interviewId)
+        .then(setInterview)
+        .catch((err) => console.error("Failed to load interview:", err));
     }
   }, [params.interviewId]);
 

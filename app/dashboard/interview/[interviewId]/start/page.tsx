@@ -49,16 +49,18 @@ export default function StartInterviewPage() {
 
   useEffect(() => {
     if (params.interviewId) {
-      getInterview(params.interviewId).then((data) => {
-        if (data?.jsonMockResp) {
-          const parsed = JSON.parse(data.jsonMockResp);
-          const arr = Array.isArray(parsed)
-            ? parsed
-            : Object.values(parsed).find(Array.isArray) || [];
-          setQuestions(arr);
-          setDifficulty(data.difficulty || "mid");
-        }
-      });
+      getInterview(params.interviewId)
+        .then((data) => {
+          if (data?.jsonMockResp) {
+            const parsed = JSON.parse(data.jsonMockResp);
+            const arr = Array.isArray(parsed)
+              ? parsed
+              : Object.values(parsed).find(Array.isArray) || [];
+            setQuestions(arr);
+            setDifficulty(data.difficulty || "mid");
+          }
+        })
+        .catch((err) => console.error("Failed to load interview:", err));
     }
   }, [params.interviewId]);
 

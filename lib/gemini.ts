@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY environment variable is not set. Check your .env.local file.");
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function generateFromPrompt(prompt: string, temperature: number = 1.2): Promise<string> {

@@ -32,21 +32,17 @@ function resolve(obj: Record<string, unknown>, path: string): string | undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("app-language");
     if (stored === "en" || stored === "ko") {
       setLanguageState(stored);
     }
-    setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.lang = language;
-    }
-  }, [language, mounted]);
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
@@ -71,10 +67,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     },
     [language]
   );
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

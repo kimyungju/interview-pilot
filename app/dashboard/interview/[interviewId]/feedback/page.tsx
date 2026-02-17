@@ -125,14 +125,16 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     if (params.interviewId) {
-      getAnswers(params.interviewId).then((data) => {
-        const mainAnswers = data.filter((a) => !a.parentAnswerId);
-        const grouped: GroupedAnswer[] = mainAnswers.map((main) => ({
-          ...main,
-          followUp: data.find((f) => f.parentAnswerId === main.id) || null,
-        }));
-        setAnswers(grouped);
-      });
+      getAnswers(params.interviewId)
+        .then((data) => {
+          const mainAnswers = data.filter((a) => !a.parentAnswerId);
+          const grouped: GroupedAnswer[] = mainAnswers.map((main) => ({
+            ...main,
+            followUp: data.find((f) => f.parentAnswerId === main.id) || null,
+          }));
+          setAnswers(grouped);
+        })
+        .catch((err) => console.error("Failed to load answers:", err));
     }
   }, [params.interviewId]);
 
