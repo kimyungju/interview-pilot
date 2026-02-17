@@ -3,7 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getInterview } from "@/app/actions/interview";
-import { submitAnswer, generateFollowUpQuestion } from "@/app/actions/answer";
+import { submitAnswer, generateFollowUpQuestion, updateVideoUrl } from "@/app/actions/answer";
+import { createRecordingSession, type RecordingSession } from "@/lib/mediaRecorder";
+import { uploadVideoBlob } from "@/lib/videoUpload";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader, Mic, Volume2, SkipForward } from "lucide-react";
@@ -42,6 +44,8 @@ export default function StartInterviewPage() {
   const isRecordingRef = useRef(false);
   const countdownTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const webcamRef = useRef<Webcam>(null);
+  const recordingSessionRef = useRef<RecordingSession | null>(null);
+  const audioTrackRef = useRef<MediaStreamTrack | null>(null);
 
   useEffect(() => {
     if (params.interviewId) {
@@ -89,6 +93,67 @@ export default function StartInterviewPage() {
     loadVoices().then(setVoices);
   }, []);
 
+  // Acquire mic-only audio track for video recording (with echo cancellation)
+  useEffect(() => {
+    let track: MediaStreamTrack | null = null;
+    navigator.mediaDevices
+      ?.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false,
+      })
+      .then((stream) => {
+        track = stream.getAudioTracks()[0];
+        audioTrackRef.current = track;
+      })
+      .catch(() => {
+        // Mic not available — recording will be video-only or skipped
+      });
+    return () => {
+      track?.stop();
+      audioTrackRef.current = null;
+    };
+  }, []);
+
+  // Cleanup recording session on unmount
+  useEffect(() => {
+    return () => {
+      recordingSessionRef.current?.cleanup();
+      recordingSessionRef.current = null;
+    };
+  }, []);
+
+  const startVideoRecording = () => {
+    try {
+      const video = webcamRef.current?.video;
+      if (!video?.srcObject) return;
+      const videoTrack = (video.srcObject as MediaStream).getVideoTracks()[0];
+      if (!videoTrack) return;
+
+      const audioTrack = audioTrackRef.current;
+      if (!audioTrack) return;
+
+      const session = createRecordingSession(videoTrack, audioTrack);
+      session.start();
+      recordingSessionRef.current = session;
+    } catch {
+      // MediaRecorder not supported — graceful degradation
+    }
+  };
+
+  const stopVideoRecording = async (): Promise<Blob | null> => {
+    try {
+      if (recordingSessionRef.current?.isActive()) {
+        const blob = await recordingSessionRef.current.stop();
+        recordingSessionRef.current = null;
+        return blob;
+      }
+    } catch {
+      // Recording failed — non-critical
+    }
+    recordingSessionRef.current = null;
+    return null;
+  };
+
   // Auto-read question, then start countdown after speech ends
   useEffect(() => {
     if (questions.length === 0 || !speechSupported || isFollowUpMode) return;
@@ -125,11 +190,13 @@ export default function StartInterviewPage() {
       recognition.stop();
       setIsRecording(false);
       isRecordingRef.current = false;
+      stopVideoRecording(); // discard blob — user toggled off manually
     } else {
       setUserAnswer("");
       recognition.start();
       setIsRecording(true);
       isRecordingRef.current = true;
+      startVideoRecording();
     }
   };
 
@@ -162,6 +229,7 @@ export default function StartInterviewPage() {
         recognitionRef.current.start();
         setIsRecording(true);
         isRecordingRef.current = true;
+        startVideoRecording();
       }
     }, 3000);
     countdownTimersRef.current = [t1, t2, t3];
@@ -204,11 +272,13 @@ export default function StartInterviewPage() {
       isRecordingRef.current = false;
     }
 
+    const currentVideoBlob = await stopVideoRecording();
+
     setLoading(true);
     try {
       if (isFollowUpMode && followUpQuestion && parentAnswerId) {
         // Submit follow-up answer
-        await submitAnswer(
+        const followUpResult = await submitAnswer(
           params.interviewId,
           followUpQuestion,
           "",
@@ -218,6 +288,12 @@ export default function StartInterviewPage() {
           difficulty
         );
         moveToNext();
+
+        if (currentVideoBlob) {
+          uploadVideoBlob(currentVideoBlob, params.interviewId, followUpResult.answerId)
+            .then((url) => { if (url) updateVideoUrl(followUpResult.answerId, url).catch(console.error); })
+            .catch(console.error);
+        }
       } else {
         // Submit main answer
         const result = await submitAnswer(
@@ -229,6 +305,13 @@ export default function StartInterviewPage() {
           null,
           difficulty
         );
+
+        // Fire-and-forget video upload for main answer
+        if (currentVideoBlob) {
+          uploadVideoBlob(currentVideoBlob, params.interviewId, result.answerId)
+            .then((url) => { if (url) updateVideoUrl(result.answerId, url).catch(console.error); })
+            .catch(console.error);
+        }
 
         // Generate follow-up question
         setLoadingFollowUp(true);

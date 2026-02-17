@@ -191,6 +191,17 @@ Respond with ONLY JSON:
   return { rating: parsed.rating, feedback: feedbackJson, answerId: inserted.id };
 }
 
+export async function updateVideoUrl(answerId: number, videoUrl: string) {
+  const user = await currentUser();
+  if (!user?.emailAddresses?.[0]?.emailAddress) {
+    throw new Error("Unauthorized");
+  }
+  await db
+    .update(UserAnswer)
+    .set({ videoUrl })
+    .where(eq(UserAnswer.id, answerId));
+}
+
 export async function getAnswers(mockIdRef: string) {
   const user = await currentUser();
   if (!user?.emailAddresses?.[0]?.emailAddress) {

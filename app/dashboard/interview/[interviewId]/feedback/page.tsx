@@ -39,6 +39,7 @@ interface AnswerData {
   feedback: string | null;
   rating: string | null;
   parentAnswerId: number | null;
+  videoUrl: string | null;
 }
 
 interface GroupedAnswer extends AnswerData {
@@ -72,6 +73,23 @@ function getBarColor(score: number): string {
   if (score >= 4) return "bg-emerald-500";
   if (score >= 3) return "bg-amber-500";
   return "bg-red-500";
+}
+
+function VideoPlayer({ url, label }: { url: string; label: string }) {
+  return (
+    <div className="p-4 rounded-lg border bg-card">
+      <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-muted-foreground">
+        {label}
+      </p>
+      <video
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        className="w-full rounded-lg max-h-64 bg-black"
+      />
+    </div>
+  );
 }
 
 const competencyKeys = ["technicalKnowledge", "communicationClarity", "problemSolving", "relevance"] as const;
@@ -204,6 +222,11 @@ export default function FeedbackPage() {
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="px-4 pb-4 pt-2 space-y-3">
+                {/* Video Recording */}
+                {answer.videoUrl && (
+                  <VideoPlayer url={answer.videoUrl} label={t("feedback.videoRecording")} />
+                )}
+
                 {/* Competency Bars (enhanced feedback) */}
                 {enhanced?.competencies && (
                   <div className="p-4 rounded-lg border bg-card space-y-2.5">
@@ -328,6 +351,11 @@ export default function FeedbackPage() {
                       {t("feedback.followUp")} — {answer.followUp.rating}/5
                     </span>
                     <p className="text-sm font-medium mb-2">{answer.followUp.question}</p>
+                    {answer.followUp.videoUrl && (
+                      <div className="mb-2">
+                        <VideoPlayer url={answer.followUp.videoUrl} label={t("feedback.videoRecording")} />
+                      </div>
+                    )}
                     <div className="p-3 rounded bg-background/50">
                       <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">{t("feedback.yourAnswer")}</p>
                       <p className="text-sm">{answer.followUp.userAns || t("feedback.noAnswer")}</p>
