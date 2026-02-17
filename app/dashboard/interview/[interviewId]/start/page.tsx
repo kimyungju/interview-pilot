@@ -238,7 +238,10 @@ export default function StartInterviewPage() {
   };
 
   const handleTextToSpeech = (text: string) => {
-    if ("speechSynthesis" in window) {
+    if (!("speechSynthesis" in window)) return null;
+    window.speechSynthesis.cancel();
+    // Chrome workaround: delay between cancel and speak
+    setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = language === "ko" ? "ko-KR" : "en-US";
       const preferredGender = getStoredVoiceGender();
@@ -246,11 +249,9 @@ export default function StartInterviewPage() {
         voices.length > 0 ? voices : window.speechSynthesis.getVoices();
       const selectedVoice = selectVoice(availableVoices, preferredGender, language);
       if (selectedVoice) utterance.voice = selectedVoice;
-      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
-      return utterance;
-    }
-    return null;
+    }, 100);
+    return true;
   };
 
   const startCountdownSequence = () => {

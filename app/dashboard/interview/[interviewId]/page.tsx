@@ -58,14 +58,17 @@ export default function InterviewPage() {
   const handlePreview = () => {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(t("setup.previewText"));
-    utterance.lang = language === "ko" ? "ko-KR" : "en-US";
-    const voice = selectVoice(voices, voiceGender, language);
-    if (voice) utterance.voice = voice;
-    utterance.onstart = () => setPreviewPlaying(true);
-    utterance.onend = () => setPreviewPlaying(false);
-    utterance.onerror = () => setPreviewPlaying(false);
-    window.speechSynthesis.speak(utterance);
+    setPreviewPlaying(true);
+    // Chrome workaround: delay between cancel and speak
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(t("setup.previewText"));
+      utterance.lang = language === "ko" ? "ko-KR" : "en-US";
+      const voice = selectVoice(voices, voiceGender, language);
+      if (voice) utterance.voice = voice;
+      utterance.onend = () => setPreviewPlaying(false);
+      utterance.onerror = () => setPreviewPlaying(false);
+      window.speechSynthesis.speak(utterance);
+    }, 100);
   };
 
   if (!interview) {
