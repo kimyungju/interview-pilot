@@ -10,10 +10,10 @@ Key capabilities:
 
 - **Three creation modes** — standard form, reference-material-based (paste or upload a PDF), and resume-personalized interviews that probe specific claims from the candidate's background
 - **Configurable interviews** — type (behavioral, technical, system design), difficulty (junior/mid/senior), question count, and a question bank with random or sequential selection
-- **Live speech interface** — TTS reads the question, a visual countdown starts, speech recognition captures the answer, and webcam video records the candidate's delivery
+- **Live speech interface** — TTS reads the question (browser-native for English, OpenAI cloud TTS for Korean), a visual countdown starts, speech recognition captures the answer, and webcam video records the candidate's delivery
 - **Follow-up questions** — after each answer, the AI generates a contextual follow-up, creating a multi-turn conversational flow with parent-child answer linking
 - **Difficulty-aware feedback** — AI scores across four competency dimensions using sandwich-method feedback, with leniency calibrated to the interview's difficulty level
-- **Bilingual support** — full English and Korean localization including AI prompts, TTS voice selection, and PDF rendering with CJK font injection
+- **Bilingual support** — full English and Korean localization including AI prompts, dual TTS pipeline (browser-native for English, OpenAI cloud TTS for Korean with gendered voice selection), and PDF rendering with CJK font injection
 - **PDF export with video QR codes** — client-side report generation with per-question breakdowns, competency bar charts, and scannable QR codes linking to recorded videos
 - **Dashboard filters** — search, type/difficulty filtering, and sort controls for managing interview history
 
@@ -31,10 +31,15 @@ The platform targets job seekers, CS students, and career changers who want stru
 │                                                                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────┐ │
 │  │  react-webcam │  │ Web Speech   │  │  jsPDF + QRCode            │ │
-│  │  (video feed) │  │ API (STT/TTS)│  │  (PDF export + QR links)   │ │
-│  └──────┬───────┘  └──────────────┘  └────────────────────────────┘ │
-│         │  MediaRecorder                                            │
-│         │  (per-question video)     spoken answer │  TTS playback   │
+│  │  (video feed) │  │ API (STT)    │  │  (PDF export + QR links)   │ │
+│  └──────┬───────┘  └──────┬───────┘  └────────────────────────────┘ │
+│         │  MediaRecorder  │                                         │
+│         │  (per-question  │  spoken answer    TTS playback          │
+│         │   video)        │                   ▲                     │
+│         │                 │    ┌──────────────┴──────────────┐      │
+│         │                 │    │ English: Web Speech API     │      │
+│         │                 │    │ Korean:  OpenAI TTS (server)│      │
+│         │                 │    └─────────────────────────────┘      │
 │         ▼                                        ▼                  │
 │  ┌──────────────────────────────────────────────┐                   │
 │  │  Next.js 16 App Router (React 19)            │                   │
@@ -111,7 +116,7 @@ Review    →  Collapsible feedback + video playback → PDF with QR codes
 | **Drizzle ORM + Supabase PostgreSQL** | Relational database | Type-safe schema with zero codegen. Push-based migrations via `drizzle-kit push` — no migration files to manage during rapid iteration | No automatic rollback; push-based workflow requires manual recovery if a schema change fails |
 | **Supabase Storage** | Video blob hosting | Integrated with the existing Supabase project. Public URL generation via `getPublicUrl()` — no signed-URL expiration management | Separate client from the Drizzle database connection; requires lazy-init singleton to avoid build-time crashes when credentials are absent |
 | **Clerk** | Authentication | Drop-in auth with webhook sync, social login, and per-request JWT validation. Avoids building session management and OAuth flows from scratch | External dependency on a critical path; webhook ordering requires defensive coding |
-| **Web Speech API + MediaRecorder** | Speech I/O + video capture | Native browser APIs — zero bundle cost, no third-party ASR/recording service fees. Speech recognition, synthesis, and video recording through a single platform | Browser-dependent accuracy and voice availability; MediaRecorder MIME support varies; no Safari STT |
+| **Web Speech API + OpenAI TTS + MediaRecorder** | Speech I/O + video capture | Dual TTS strategy: browser-native synthesis for English (zero cost, low latency), OpenAI cloud TTS for Korean (reliable gendered voices via `nova`/`onyx` where browser voices are unreliable). Speech recognition and video recording through native browser APIs | English TTS quality varies by OS; Korean TTS adds ~$0.008/interview API cost; no Safari STT |
 | **Tailwind CSS v4 + shadcn/ui** | Styling | CSS variable-based theming enables dark mode with a single provider. Radix primitives handle accessibility (focus traps, ARIA) without custom implementation | Design token migration from v3 to v4 required reworking the globals.css structure |
 
 ---
@@ -252,7 +257,7 @@ The `cleanup()` method wraps `recorder.stop()` in a try/catch for component unmo
 - End-to-end interview pipeline: create, execute with speech I/O and video recording, receive multi-dimensional AI feedback with follow-up probing, and export a PDF report with embedded video QR codes
 - Multi-turn conversational flow: AI-generated follow-up questions create realistic interview dynamics, with parent-child answer linking for structured review
 - Difficulty-calibrated feedback: leniency tiers (junior/mid/senior) with sandwich-method coaching and speech-noise isolation across four competency dimensions
-- Bilingual support (English + Korean) across all layers: UI, AI prompts, TTS voice selection, and PDF rendering with CJK font injection
+- Bilingual support (English + Korean) across all layers: UI, AI prompts, dual TTS pipeline (browser-native English, OpenAI cloud Korean), and PDF rendering with CJK font injection
 - Dashboard management: search, filter by type/difficulty, sort by date/rating, with `useMemo`-filtered client-side rendering
 
 ### Scalability Considerations

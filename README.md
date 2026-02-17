@@ -9,7 +9,7 @@ AI-powered mock interview platform with speech recognition, PDF resume upload, a
 - **Follow-up questions** — AI generates contextual follow-up questions based on your answers
 - **PDF resume upload** — server-side text extraction feeds context to AI question generation
 - **Live speech recognition** — answer questions naturally using the Web Speech API
-- **Text-to-speech** — questions read aloud with a countdown timer before recording; choose male or female interviewer voice
+- **Text-to-speech** — questions read aloud with a countdown timer before recording; choose male or female interviewer voice (browser-native for English, OpenAI cloud TTS for Korean)
 - **Webcam integration** — optional camera feed during interviews
 - **AI-powered feedback** — difficulty-aware scoring with competency scores (Technical Knowledge, Communication Clarity, Problem Solving, Relevance) and sandwich feedback method
 - **Per-question video recording** — records webcam + audio for each answer, uploads to Supabase Storage, and plays back on the feedback page
@@ -29,7 +29,7 @@ AI-powered mock interview platform with speech recognition, PDF resume upload, a
 | Database | Supabase PostgreSQL via Drizzle ORM + Neon serverless driver |
 | AI | OpenAI API (gpt-4o-mini) |
 | Styling | Tailwind CSS v4, Shadcn UI (New York style) |
-| Speech | Web Speech API (recognition + synthesis) |
+| Speech | Web Speech API (recognition), Web Speech API + OpenAI TTS (synthesis) |
 | Video | MediaRecorder API + Supabase Storage |
 | i18n | Custom context-based solution (English, Korean) |
 | PDF | pdf-parse (extraction), jsPDF + qrcode (report generation) |
@@ -85,7 +85,7 @@ Create a `.env.local` file from `.env.example` and fill in the following:
 
 ```
 app/
-├── actions/          # Server actions (interview, answer, pdf)
+├── actions/          # Server actions (interview, answer, pdf, speech)
 ├── dashboard/        # Protected routes
 │   ├── _components/  # Dashboard-scoped components (AddNewInterview, InterviewCard, InterviewFilters, Header)
 │   └── interview/    # Interview setup, live session, feedback
@@ -100,6 +100,7 @@ lib/
 ├── videoUpload.ts    # Upload recorded videos to Supabase Storage
 ├── supabaseClient.ts # Supabase client (lazy-init for Storage access)
 ├── voiceUtils.ts     # TTS voice selection and gender classification
+├── cloudTts.ts       # OpenAI cloud TTS client for Korean speech synthesis
 ├── fontLoader.ts     # Korean font loader for PDF generation
 ├── i18n/             # Internationalization (en.json, ko.json, LanguageContext)
 └── utils.ts          # Shadcn cn() helper
